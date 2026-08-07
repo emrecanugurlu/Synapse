@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="Theme.Synapse" parent="@android:style/Theme.Material.Light.NoActionBar">
+        <!-- Compose çizmeye başlamadan önceki karede ve geçişlerde altta
+             bu renk görünür; varsayılan beyaz, koyu temada flaş yaratıyordu.
+             values-night sürümü koyu karşılığını verir. -->
+        <item name="android:windowBackground">@color/window_background</item>
+    </style>
+
+    <!-- Açılış ekranı: marka rengi zemin + Synapse glifi. -->
+    <style name="Theme.Synapse.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/splash_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_logo</item>
+        <item name="postSplashScreenTheme">@style/Theme.Synapse</item>
+    </style>
+
+</resources>

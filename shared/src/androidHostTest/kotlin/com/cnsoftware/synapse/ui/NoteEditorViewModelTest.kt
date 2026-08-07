@@ -1,0 +1,306 @@
+package com.cnsoftware.synapse.ui
+
+import app.cash.sqldelight.db.SqlDriver
+import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
+import com.cnsoftware.synapse.data.NoteRepositoryImpl
+import com.cnsoftware.synapse.db.NoteDatabase
+import com.cnsoftware.synapse.domain.Note
+import com.cnsoftware.synapse.domain.NoteColor
+import com.cnsoftware.synapse.prefs.AppSettings
+import com.cnsoftware.synapse.ui.editor.NoteEditorViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
+import kotlin.test.AfterTest
+import kotlin.test.BeforeTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+
+@OptIn(ExperimentalCoroutinesApi::class)
+class NoteEditorViewModelTest {
+
+    private val dispatcher = StandardTestDispatcher()
+    private lateinit var driver: SqlDriver
+    private lateinit var repository: NoteRepositoryImpl
+    private lateinit var reminderScheduler: FakeReminderScheduler
+    private lateinit var shareService: FakeShareService
+    private lateinit var settings: AppSettings
+
+    @BeforeTest
+    fun setUp() {
+        Dispatchers.setMain(dispatcher)
+        driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
+        NoteDatabase.Schema.create(driver)
+        repository = NoteRepositoryImpl(NoteDatabase(driver), dispatcher)
+        reminderScheduler = FakeReminderScheduler()
+        shareService = FakeShareService()
+        settings = AppSettings(FakePreferencesStore())
+    }
+
+    @AfterTest
+    fun tearDown() {
+        Dispatchers.resetMain()
+        driver.close()
+    }
+
+    private fun editorFor(noteId: String?, startAsChecklist: Boolean = false) =
+        NoteEditorViewModel(noteId, repository, reminderScheduler, shareService, settings, startAsChecklist)
+
+    @Test
+    fun newNoteIsPersistedOnSave() = runTest(dispatcher) {
+        val viewModel = editorFor(null)
+        advanceUntilIdle()
+
+        viewModel.onTitleChange("Merhaba")
+        viewModel.save()
+        advanceUntilIdle()
+
+        val notes = repository.observeActiveNotes().first()
+        assertEquals(listOf("Merhaba"), notes.map { it.title })
+    }
+
+    @Test
+    fun newNoteCanStartDirectlyAsChecklist() = runTest(dispatcher) {
+        val viewModel = editorFor(noteId = null, startAsChecklist = true)
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertTrue(state.isChecklist)
+        assertEquals(1, state.checklistItems.size)
+        assertEquals("", state.checklistItems.single().text)
+        // İmleç doğrudan ilk maddede olsun.
+        assertEquals(state.checklistItems.single().id, viewModel.pendingFocusItemId.value)
+    }
+
+    @Test
+    fun blankNoteIsNotPersisted() = runTest(dispatcher) {
+        val viewModel = editorFor(null)
+        advanceUntilIdle()
+
+        viewModel.save()
+        advanceUntilIdle()
+
+        assertTrue(repository.observeActiveNotes().first().isEmpty())
+    }
+
+    @Test
+    fun debouncedAutosavePersistsChanges() = runTest(dispatcher) {
+        val viewModel = editorFor(null)
+        advanceUntilIdle()
+
+        viewModel.onTitleChange("Otomatik")
+        // Debounce süresi 600ms; henüz kaydedilmemiş olmalı.
+        advanceTimeBy(300)
+        assertTrue(repository.observeActiveNotes().first().isEmpty())
+
+        advanceTimeBy(400)
+        advanceUntilIdle()
+        assertEquals(listOf("Otomatik"), repository.observeActiveNotes().first().map { it.title })
+    }
+
+    @Test
+    fun autosaveStopsWhenNothingChanges() = runTest(dispatcher) {
+        val viewModel = editorFor(null)
+        advanceUntilIdle()
+
+        viewModel.onTitleChange("Tek kayıt")
+        advanceTimeBy(1_000)
+        advanceUntilIdle()
+
+        val firstSave = viewModel.lastSavedAt.value
+        assertTrue(firstSave > 0)
+
+        // Kullanıcı hiçbir şey yapmadan bekliyor: yeni kayıt olmamalı.
+        // (Kaydetme sonrası zaman damgasını uiState'e yazmak, otomatik kaydetme
+        // akışını yeniden tetikleyip 600ms'de bir tekrarlayan bir döngü yaratıyordu.)
+        advanceTimeBy(5_000)
+        advanceUntilIdle()
+
+        assertEquals(firstSave, viewModel.lastSavedAt.value)
+    }
+
+    @Test
+    fun autosaveDisabledMeansNothingIsWrittenUntilSaveIsCalled() = runTest(dispatcher) {
+        settings.setAutoSaveEnabled(false)
+        val viewModel = editorFor(null)
+        advanceUntilIdle()
+
+        viewModel.onTitleChange("Elle kaydedilecek")
+        advanceTimeBy(3_000)
+        advanceUntilIdle()
+
+        // Otomatik kaydetme kapalı: hiçbir şey yazılmamalı, ama değişiklik işaretli olmalı.
+        assertTrue(repository.observeActiveNotes().first().isEmpty())
+        assertTrue(viewModel.hasUnsavedChanges.value)
+
+        viewModel.save()
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf("Elle kaydedilecek"),
+            repository.observeActiveNotes().first().map { it.title },
+        )
+        assertEquals(false, viewModel.hasUnsavedChanges.value)
+    }
+
+    @Test
+    fun editingArchivedNotePreservesArchivedFlag() = runTest(dispatcher) {
+        repository.upsertNote(
+            Note(
+                id = "n1",
+                title = "Eski",
+                content = "içerik",
+                color = NoteColor.DEFAULT,
+                isArchived = true,
+                createdAt = 1L,
+                updatedAt = 1L,
+            ),
+        )
+
+        val viewModel = editorFor("n1")
+        advanceUntilIdle()
+
+        viewModel.onTitleChange("Yeni başlık")
+        viewModel.save()
+        advanceUntilIdle()
+
+        val saved = repository.getNoteById("n1")
+        assertEquals("Yeni başlık", saved?.title)
+        assertEquals(true, saved?.isArchived)
+    }
+
+    @Test
+    fun togglingChecklistModeConvertsContentWithoutLosingIt() = runTest(dispatcher) {
+        val viewModel = editorFor(null)
+        advanceUntilIdle()
+
+        viewModel.onContentChange("süt al\nekmek al\n\nyumurta")
+
+        // Metin -> checklist: her dolu satır bir öğe.
+        viewModel.toggleChecklistMode()
+        assertEquals(
+            listOf("süt al", "ekmek al", "yumurta"),
+            viewModel.uiState.value.checklistItems.map { it.text },
+        )
+        assertEquals("", viewModel.uiState.value.content)
+
+        // Checklist -> metin: her öğe bir satır.
+        viewModel.toggleChecklistMode()
+        assertEquals("süt al\nekmek al\nyumurta", viewModel.uiState.value.content)
+        assertTrue(viewModel.uiState.value.checklistItems.isEmpty())
+    }
+
+    @Test
+    fun enterInsertsItemAfterCurrentAndRequestsFocus() = runTest(dispatcher) {
+        val viewModel = editorFor(null)
+        advanceUntilIdle()
+
+        viewModel.onContentChange("bir\niki")
+        viewModel.toggleChecklistMode()
+        val first = viewModel.uiState.value.checklistItems.first()
+
+        viewModel.addChecklistItemAfter(first.id)
+
+        val items = viewModel.uiState.value.checklistItems
+        assertEquals(listOf("bir", "", "iki"), items.map { it.text })
+        assertEquals(listOf(0, 1, 2), items.map { it.position })
+        assertEquals(items[1].id, viewModel.pendingFocusItemId.value)
+
+        viewModel.onFocusHandled()
+        assertEquals(null, viewModel.pendingFocusItemId.value)
+    }
+
+    @Test
+    fun backspaceOnEmptyItemRemovesItAndFocusesPrevious() = runTest(dispatcher) {
+        val viewModel = editorFor(null)
+        advanceUntilIdle()
+
+        viewModel.onContentChange("bir\niki")
+        viewModel.toggleChecklistMode()
+        val (first, second) = viewModel.uiState.value.checklistItems
+        viewModel.onChecklistItemTextChange(second.id, "")
+
+        viewModel.onChecklistBackspaceOnEmpty(second.id)
+
+        assertEquals(listOf("bir"), viewModel.uiState.value.checklistItems.map { it.text })
+        assertEquals(first.id, viewModel.pendingFocusItemId.value)
+    }
+
+    @Test
+    fun backspaceOnLastRemainingItemIsIgnored() = runTest(dispatcher) {
+        val viewModel = editorFor(null)
+        advanceUntilIdle()
+
+        viewModel.toggleChecklistMode()
+        val only = viewModel.uiState.value.checklistItems.single()
+
+        viewModel.onChecklistBackspaceOnEmpty(only.id)
+
+        assertEquals(1, viewModel.uiState.value.checklistItems.size)
+    }
+
+    @Test
+    fun moveChecklistItemReordersAndReindexes() = runTest(dispatcher) {
+        val viewModel = editorFor(null)
+        advanceUntilIdle()
+
+        viewModel.onContentChange("bir\niki\nüç")
+        viewModel.toggleChecklistMode()
+        val first = viewModel.uiState.value.checklistItems.first()
+
+        // İlk öğeyi en alta taşı.
+        viewModel.moveChecklistItem(first.id, 2)
+
+        val items = viewModel.uiState.value.checklistItems
+        assertEquals(listOf("iki", "üç", "bir"), items.map { it.text })
+        assertEquals(listOf(0, 1, 2), items.map { it.position })
+    }
+
+    @Test
+    fun checkingItemMovesItToTheEndSoDataMatchesDisplayOrder() = runTest(dispatcher) {
+        val viewModel = editorFor(null)
+        advanceUntilIdle()
+
+        viewModel.onContentChange("bir\niki\nüç")
+        viewModel.toggleChecklistMode()
+        val first = viewModel.uiState.value.checklistItems.first()
+
+        viewModel.toggleChecklistItemChecked(first.id)
+        assertEquals(listOf("iki", "üç", "bir"), viewModel.uiState.value.checklistItems.map { it.text })
+
+        // İşaret kaldırılınca tamamlanmamışların sonuna döner.
+        viewModel.toggleChecklistItemChecked(first.id)
+        assertEquals(listOf("iki", "üç", "bir"), viewModel.uiState.value.checklistItems.map { it.text })
+        assertTrue(viewModel.uiState.value.checklistItems.none { it.isChecked })
+    }
+
+    @Test
+    fun deleteMovesNoteToTrashAndCancelsReminder() = runTest(dispatcher) {
+        repository.upsertNote(
+            Note(
+                id = "n1",
+                title = "Silinecek",
+                content = "",
+                color = NoteColor.DEFAULT,
+                createdAt = 1L,
+                updatedAt = 1L,
+            ),
+        )
+
+        val viewModel = editorFor("n1")
+        advanceUntilIdle()
+
+        viewModel.delete()
+        advanceUntilIdle()
+
+        assertEquals(listOf("n1"), repository.observeTrashedNotes().first().map { it.id })
+        assertEquals(listOf("n1"), reminderScheduler.cancelled)
+    }
+}

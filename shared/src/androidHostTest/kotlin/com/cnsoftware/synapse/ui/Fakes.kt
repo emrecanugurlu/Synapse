@@ -1,0 +1,41 @@
+package com.cnsoftware.synapse.ui
+
+import com.cnsoftware.synapse.prefs.PreferencesStore
+import com.cnsoftware.synapse.reminder.ReminderScheduler
+import com.cnsoftware.synapse.share.ShareService
+
+class FakePreferencesStore : PreferencesStore {
+    private val strings = mutableMapOf<String, String>()
+    private val booleans = mutableMapOf<String, Boolean>()
+
+    override fun getString(key: String): String? = strings[key]
+    override fun putString(key: String, value: String) {
+        strings[key] = value
+    }
+
+    override fun getBoolean(key: String, default: Boolean): Boolean = booleans[key] ?: default
+    override fun putBoolean(key: String, value: Boolean) {
+        booleans[key] = value
+    }
+}
+
+class FakeReminderScheduler : ReminderScheduler {
+    val scheduled = mutableListOf<Pair<String, Long>>()
+    val cancelled = mutableListOf<String>()
+
+    override fun schedule(noteId: String, title: String, message: String, triggerAtMillis: Long) {
+        scheduled += noteId to triggerAtMillis
+    }
+
+    override fun cancel(noteId: String) {
+        cancelled += noteId
+    }
+}
+
+class FakeShareService : ShareService {
+    val sharedTexts = mutableListOf<String>()
+
+    override fun shareText(text: String) {
+        sharedTexts += text
+    }
+}

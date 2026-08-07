@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Synapse glifi: üst üste binmiş not sayfaları (Material "note_stack").
+  Kaynak 960x960'lık, y'si -960..0 aralığında olan bir yol; iki iç içe grup
+  ile önce 0..960'a taşınıp sonra 108x108 viewport'un güvenli alanına
+  (30..78, yani 48x48) ölçekleniyor.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <group
+        android:translateX="30"
+        android:translateY="30"
+        android:scaleX="0.05"
+        android:scaleY="0.05">
+        <group android:translateY="960">
+            <path
+                android:fillColor="#D99B21"
+                android:pathData="M280-160v-441q0-33 24-56t57-23h439q33 0 56.5 23.5T880-600v320L680-80H360q-33 0-56.5-23.5T280-160ZM81-710q-6-33 13-59.5t52-32.5l434-77q33-6 59.5 13t32.5 52l10 54h-82l-7-40-433 77 40 226v279q-16-9-27.5-24T158-276L81-710Zm279 110v440h280v-160h160v-280H360Zm220 220Z" />
+        </group>
+    </group>
+</vector>

@@ -1,0 +1,13 @@
+-- v1 -> v2: Etiket tabloları eklendi.
+CREATE TABLE Label (
+    id TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE
+);
+
+CREATE TABLE NoteLabelCrossRef (
+    noteId TEXT NOT NULL,
+    labelId TEXT NOT NULL,
+    PRIMARY KEY (noteId, labelId),
+    FOREIGN KEY (noteId) REFERENCES Note(id) ON DELETE CASCADE,
+    FOREIGN KEY (labelId) REFERENCES Label(id) ON DELETE CASCADE
+);

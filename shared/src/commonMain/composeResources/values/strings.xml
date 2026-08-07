@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Varsayılan dil: Türkçe. İngilizce için values-en/strings.xml -->
+<resources>
+
+    <!-- Genel -->
+    <string name="app_name">Synapse</string>
+    <string name="app_tagline">Notların bir arada</string>
+    <string name="action_back">Geri</string>
+    <string name="action_close">Kapat</string>
+    <string name="action_cancel">Vazgeç</string>
+    <string name="action_delete">Sil</string>
+    <string name="action_ok">Tamam</string>
+    <string name="action_save">Kaydet</string>
+    <string name="action_clear">Temizle</string>
+    <string name="action_search">Ara</string>
+    <string name="action_open_menu">Menüyü aç</string>
+    <string name="action_more">Diğer işlemler</string>
+    <string name="action_undo">Geri al</string>
+
+    <!-- Gezinme -->
+    <string name="nav_notes">Notlar</string>
+    <string name="nav_archive">Arşiv</string>
+    <string name="nav_trash">Çöp Kutusu</string>
+    <string name="nav_labels">Etiketler</string>
+    <string name="nav_edit_labels">Etiketleri düzenle</string>
+    <string name="nav_settings">Ayarlar</string>
+
+    <!-- Arama -->
+    <string name="search_notes_hint">Notlarda ara</string>
+    <string name="search_archive_hint">Arşivde ara</string>
+    <string name="search_trash_hint">Çöp kutusunda ara</string>
+    <string name="search_close">Aramayı kapat</string>
+
+    <!-- Görünüm ve sıralama -->
+    <string name="view_switch_to_list">Liste görünümü</string>
+    <string name="view_switch_to_grid">Izgara görünümü</string>
+    <string name="sort_title">Sırala</string>
+    <string name="sort_updated">Son düzenlenen</string>
+    <string name="sort_created">Oluşturma tarihi</string>
+    <string name="sort_color">Renk</string>
+
+    <!-- Liste bölümleri -->
+    <string name="section_pinned">Sabitlenmiş</string>
+    <string name="section_others">Diğerleri</string>
+
+    <!-- Yeni not -->
+    <string name="fab_new">Yeni</string>
+    <string name="fab_new_note">Not</string>
+    <string name="fab_new_checklist">Liste</string>
+
+    <!-- Boş durumlar -->
+    <string name="empty_notes_title">Henüz not yok</string>
+    <string name="empty_notes_description">Aklına gelenleri yazmaya başlamak için + butonuna dokun.</string>
+    <string name="empty_search_title">Sonuç bulunamadı</string>
+    <string name="empty_search_description">\"%1$s\" ile eşleşen not yok.</string>
+    <string name="empty_search_archive_description">\"%1$s\" ile eşleşen arşiv notu yok.</string>
+    <string name="empty_archive_title">Arşiv boş</string>
+    <string name="empty_archive_description">Şimdilik saklamak istemediğin notları buraya arşivleyebilirsin.</string>
+    <string name="empty_trash_title">Çöp kutusu boş</string>
+    <string name="empty_trash_description">Sildiğin notlar bir süre burada bekler, sonra kalıcı olarak silinir.</string>
+
+    <!-- Seçim modu -->
+    <string name="selection_count">%1$d seçildi</string>
+    <string name="selection_close">Seçimi kapat</string>
+    <string name="selection_pin">Seçilenleri sabitle</string>
+    <string name="selection_unpin">Sabitlemeyi kaldır</string>
+    <string name="selection_share">Seçilenleri paylaş</string>
+    <string name="selection_duplicate">Seçilenleri kopyala</string>
+    <string name="selection_label">Etiketle</string>
+    <string name="selection_archive">Seçilenleri arşivle</string>
+    <string name="selection_unarchive">Seçilenleri arşivden çıkar</string>
+    <string name="selection_delete">Seçilenleri sil</string>
+    <string name="selection_restore">Seçilenleri geri yükle</string>
+    <string name="selection_delete_forever">Seçilenleri kalıcı sil</string>
+
+    <!-- Geri alma bildirimleri -->
+    <string name="undo_archived">%1$d not arşivlendi</string>
+    <string name="undo_unarchived">%1$d not arşivden çıkarıldı</string>
+    <string name="undo_trashed">%1$d not çöp kutusuna taşındı</string>
+
+    <!-- Not kartı -->
+    <string name="card_pin">Sabitle</string>
+    <string name="card_unpin">Sabitlemeyi kaldır</string>
+    <string name="card_more_items">+%1$d daha</string>
+    <string name="card_more_labels">+%1$d</string>
+    <string name="card_archive">Arşivle</string>
+    <string name="card_duplicate">Kopyala</string>
+
+    <!-- Editör -->
+    <string name="editor_title_hint">Başlık</string>
+    <string name="editor_content_hint">Notunu buraya yaz…</string>
+    <string name="editor_reminder">Hatırlatıcı</string>
+    <string name="editor_reminder_remove">Hatırlatıcıyı kaldır</string>
+    <string name="editor_archive">Arşivle</string>
+    <string name="editor_unarchive">Arşivden çıkar</string>
+    <string name="editor_pick_color">Renk seç</string>
+    <string name="editor_labels">Etiketler</string>
+    <string name="editor_to_text">Metin notuna çevir</string>
+    <string name="editor_to_checklist">Listeye çevir</string>
+    <string name="editor_share">Paylaş</string>
+    <string name="color_dialog_title">Renk</string>
+
+    <!-- Checklist -->
+    <string name="checklist_item_hint">Liste öğesi</string>
+    <string name="checklist_add_item">Öğe ekle</string>
+    <string name="checklist_remove_item">Öğeyi sil</string>
+    <string name="checklist_completed_count">%1$d tamamlandı</string>
+    <string name="checklist_drag_handle">Sıralamak için sürükle</string>
+
+    <!-- Etiketler -->
+    <string name="label_remove">Etiketi kaldır</string>
+    <string name="label_new">Yeni etiket</string>
+    <string name="label_create">Etiket oluştur</string>
+    <string name="label_name">Etiket adı</string>
+    <string name="label_color">Renk</string>
+    <string name="label_icon">Simge</string>
+    <string name="labels_edit_title">Etiketi düzenle</string>
+    <string name="labels_rename">Yeniden adlandır</string>
+    <string name="labels_rename_title">Etiketi yeniden adlandır</string>
+    <string name="labels_merge">Birleştir</string>
+    <string name="labels_merge_menu">Başka etiketle birleştir</string>
+    <string name="labels_merge_title">\"%1$s\" şununla birleştir</string>
+    <string name="labels_merge_message">Bu etiketteki notlar seçtiğin etikete taşınır ve \"%1$s\" silinir.</string>
+    <string name="labels_delete_title">Etiketi sil</string>
+    <string name="labels_delete_message">\"%1$s\" etiketi silinecek. Notlar silinmez, sadece bu etiket kaldırılır.</string>
+    <string name="labels_empty_title">Henüz etiket yok</string>
+    <string name="labels_empty_description">Notlarını gruplamak için + butonuna dokunup ilk etiketini oluştur.</string>
+
+    <!-- Hatırlatıcı seçici -->
+    <string name="reminder_next">İleri</string>
+    <string name="reminder_pick_time">Saat seç</string>
+
+    <!-- Çöp kutusu -->
+    <string name="trash_empty_all">Çöp kutusunu boşalt</string>
+    <string name="trash_restore">Geri yükle</string>
+    <string name="trash_delete_forever">Kalıcı sil</string>
+    <string name="trash_confirm_delete_title">Kalıcı olarak sil</string>
+    <string name="trash_confirm_delete_message">%1$d not kalıcı olarak silinecek. Bu işlem geri alınamaz.</string>
+    <string name="trash_confirm_empty_title">Çöp kutusunu boşalt</string>
+    <string name="trash_confirm_empty_message">Çöp kutusundaki tüm notlar kalıcı olarak silinecek. Bu işlem geri alınamaz.</string>
+
+    <!-- Ayarlar -->
+    <string name="settings_title">Ayarlar</string>
+    <string name="settings_appearance">Görünüm</string>
+    <string name="settings_notes">Notlar</string>
+    <string name="settings_theme_system">Sistem</string>
+    <string name="settings_theme_light">Açık</string>
+    <string name="settings_theme_dark">Koyu</string>
+    <string name="settings_trash">Çöp kutusu</string>
+    <string name="settings_trash_description">Silinen notlar bu süre boyunca saklanır, sonra kalıcı olarak silinir.</string>
+    <string name="settings_retention_7">7 gün</string>
+    <string name="settings_retention_14">14 gün</string>
+    <string name="settings_retention_30">30 gün</string>
+
+    <string name="settings_label_filters">Filtre şeridi</string>
+    <string name="settings_label_filters_description">Not listesinin üstünde etiket filtrelerini gösterir</string>
+    <string name="settings_autosave">Otomatik kaydetme</string>
+    <string name="settings_autosave_on_description">Yazdıkça arka planda kendiliğinden kaydedilir</string>
+    <string name="settings_autosave_off_description">Kaydet düğmesine basana kadar kaydedilmez</string>
+    <string name="editor_save">Kaydet</string>
+    <string name="editor_unsaved_title">Kaydedilmemiş değişiklikler</string>
+    <string name="editor_unsaved_message">Bu notta kaydedilmemiş değişiklikler var.</string>
+    <string name="action_discard">Kaydetme</string>
+
+</resources>

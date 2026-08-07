@@ -1,0 +1,2 @@
+-- v2 -> v3: Hatırlatıcı alanı eklendi.
+ALTER TABLE Note ADD COLUMN reminderAt INTEGER;

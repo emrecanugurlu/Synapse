@@ -1,0 +1,63 @@
+CREATE TABLE Label (
+    id TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE,
+    -- NoteColor ve LabelIcon enum'larinin ADI yaziliyor.
+    color TEXT NOT NULL DEFAULT 'DEFAULT',
+    icon TEXT NOT NULL DEFAULT 'LABEL'
+);
+
+CREATE TABLE NoteLabelCrossRef (
+    noteId TEXT NOT NULL,
+    labelId TEXT NOT NULL,
+    PRIMARY KEY (noteId, labelId),
+    FOREIGN KEY (noteId) REFERENCES Note(id) ON DELETE CASCADE,
+    FOREIGN KEY (labelId) REFERENCES Label(id) ON DELETE CASCADE
+);
+
+selectAllLabels:
+SELECT * FROM Label ORDER BY name ASC;
+
+insertLabel:
+INSERT OR IGNORE INTO Label(id, name, color, icon) VALUES (?, ?, ?, ?);
+
+deleteLabel:
+DELETE FROM Label WHERE id = ?;
+
+renameLabel:
+UPDATE Label SET name = :name WHERE id = :id;
+
+updateLabel:
+UPDATE Label SET name = :name, color = :color, icon = :icon WHERE id = :id;
+
+-- Kaynak etiketin notlarını hedef etikete bağlar (zaten bağlı olanlar yok sayılır).
+moveCrossRefsToLabel:
+INSERT OR IGNORE INTO NoteLabelCrossRef(noteId, labelId)
+SELECT noteId, :targetLabelId FROM NoteLabelCrossRef WHERE labelId = :sourceLabelId;
+
+deleteCrossRefsForLabel:
+DELETE FROM NoteLabelCrossRef WHERE labelId = ?;
+
+selectLabelsForNote:
+SELECT Label.id, Label.name, Label.color, Label.icon FROM Label
+INNER JOIN NoteLabelCrossRef ON NoteLabelCrossRef.labelId = Label.id
+WHERE NoteLabelCrossRef.noteId = ?
+ORDER BY Label.name ASC;
+
+deleteCrossRefsForNote:
+DELETE FROM NoteLabelCrossRef WHERE noteId = ?;
+
+insertCrossRef:
+INSERT OR IGNORE INTO NoteLabelCrossRef(noteId, labelId) VALUES (?, ?);
+
+deleteCrossRef:
+DELETE FROM NoteLabelCrossRef WHERE noteId = ? AND labelId = ?;
+
+selectActiveByLabel:
+SELECT Note.* FROM Note
+INNER JOIN NoteLabelCrossRef ON NoteLabelCrossRef.noteId = Note.id
+WHERE NoteLabelCrossRef.labelId = ? AND Note.isDeleted = 0 AND Note.isArchived = 0
+ORDER BY Note.isPinned DESC, Note.updatedAt DESC, Note.id;
+
+-- Kalıcı silinen notlardan geriye kalan iliskileri temizler (FK pragma garanti olmadigi icin).
+purgeOrphanCrossRefs:
+DELETE FROM NoteLabelCrossRef WHERE noteId NOT IN (SELECT id FROM Note);

@@ -1,0 +1,104 @@
+CREATE TABLE Note (
+    id TEXT NOT NULL PRIMARY KEY,
+    title TEXT NOT NULL,
+    content TEXT NOT NULL,
+    color TEXT NOT NULL,
+    isChecklist INTEGER AS kotlin.Boolean NOT NULL DEFAULT 0,
+    isPinned INTEGER AS kotlin.Boolean NOT NULL DEFAULT 0,
+    isArchived INTEGER AS kotlin.Boolean NOT NULL DEFAULT 0,
+    isDeleted INTEGER AS kotlin.Boolean NOT NULL DEFAULT 0,
+    createdAt INTEGER NOT NULL,
+    updatedAt INTEGER NOT NULL,
+    remoteId TEXT,
+    syncStatus TEXT NOT NULL DEFAULT 'LOCAL_ONLY',
+    reminderAt INTEGER
+);
+
+CREATE TABLE ChecklistItem (
+    id TEXT NOT NULL PRIMARY KEY,
+    noteId TEXT NOT NULL,
+    text TEXT NOT NULL,
+    isChecked INTEGER AS kotlin.Boolean NOT NULL DEFAULT 0,
+    position INTEGER NOT NULL,
+    FOREIGN KEY(noteId) REFERENCES Note(id) ON DELETE CASCADE
+);
+
+CREATE INDEX checklistItem_noteId ON ChecklistItem(noteId);
+
+-- Notes: active (not deleted, not archived)
+selectActive:
+SELECT * FROM Note WHERE isDeleted = 0 AND isArchived = 0 ORDER BY isPinned DESC, updatedAt DESC, id;
+
+selectArchived:
+SELECT * FROM Note WHERE isDeleted = 0 AND isArchived = 1 ORDER BY updatedAt DESC, id;
+
+selectTrashed:
+SELECT * FROM Note WHERE isDeleted = 1 ORDER BY updatedAt DESC, id;
+
+selectById:
+SELECT * FROM Note WHERE id = ?;
+
+searchActive:
+SELECT * FROM Note
+WHERE isDeleted = 0 AND isArchived = 0 AND (title LIKE ('%' || :query || '%') OR content LIKE ('%' || :query || '%'))
+ORDER BY isPinned DESC, updatedAt DESC, id;
+
+searchArchived:
+SELECT * FROM Note
+WHERE isDeleted = 0 AND isArchived = 1 AND (title LIKE ('%' || :query || '%') OR content LIKE ('%' || :query || '%'))
+ORDER BY updatedAt DESC, id;
+
+searchTrashed:
+SELECT * FROM Note
+WHERE isDeleted = 1 AND (title LIKE ('%' || :query || '%') OR content LIKE ('%' || :query || '%'))
+ORDER BY updatedAt DESC, id;
+
+insertOrReplaceNote:
+INSERT OR REPLACE INTO Note(id, title, content, color, isChecklist, isPinned, isArchived, isDeleted, createdAt, updatedAt, remoteId, syncStatus, reminderAt)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+setPinned:
+UPDATE Note SET isPinned = ?, updatedAt = ? WHERE id = ?;
+
+setArchived:
+UPDATE Note SET isArchived = ?, updatedAt = ? WHERE id = ?;
+
+moveToTrash:
+UPDATE Note SET isDeleted = 1, updatedAt = ? WHERE id = ?;
+
+restoreFromTrash:
+UPDATE Note SET isDeleted = 0, updatedAt = ? WHERE id = ?;
+
+deleteNotePermanently:
+DELETE FROM Note WHERE id = ?;
+
+-- Etiket atamasi Note tablosuna dokunmadigi icin liste sorgulari kendiliginden
+-- yenilenmiyor. Bu guncelleme hem "duzenlendi" zamanini dogru tutuyor hem de
+-- SQLDelight dinleyicilerini tetikliyor.
+touchNote:
+UPDATE Note SET updatedAt = ? WHERE id = ?;
+
+-- 7 gün gibi bir eşikten önce çöpe atılmış notları kalıcı olarak temizler.
+purgeTrashedBefore:
+DELETE FROM Note WHERE isDeleted = 1 AND updatedAt < ?;
+
+emptyTrash:
+DELETE FROM Note WHERE isDeleted = 1;
+
+-- Boot sonrası alarmları yeniden kurmak için: zamanı henüz gelmemiş hatırlatıcılar.
+selectUpcomingReminders:
+SELECT * FROM Note WHERE isDeleted = 0 AND reminderAt IS NOT NULL AND reminderAt > ?;
+
+-- Checklist items
+selectItemsForNote:
+SELECT * FROM ChecklistItem WHERE noteId = ? ORDER BY position ASC;
+
+insertOrReplaceItem:
+INSERT OR REPLACE INTO ChecklistItem(id, noteId, text, isChecked, position)
+VALUES (?, ?, ?, ?, ?);
+
+deleteItem:
+DELETE FROM ChecklistItem WHERE id = ?;
+
+deleteItemsForNote:
+DELETE FROM ChecklistItem WHERE noteId = ?;

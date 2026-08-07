@@ -1,0 +1,5 @@
+-- v3 -> v4: Etikete renk ve ikon eklendi.
+-- Var olan etiketler icin DEFAULT degerler yaziliyor, boylece eski kayitlar
+-- da gecerli enum adlarina sahip oluyor.
+ALTER TABLE Label ADD COLUMN color TEXT NOT NULL DEFAULT 'DEFAULT';
+ALTER TABLE Label ADD COLUMN icon TEXT NOT NULL DEFAULT 'LABEL';

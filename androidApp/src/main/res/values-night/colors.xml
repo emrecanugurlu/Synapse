@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Koyu temadaki uygulama zemini (Theme.kt DarkColors.background ile aynı) -->
+    <color name="window_background">#17140D</color>
+</resources>

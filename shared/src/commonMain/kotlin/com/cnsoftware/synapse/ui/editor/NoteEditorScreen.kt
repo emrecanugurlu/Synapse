@@ -101,6 +101,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.cnsoftware.synapse.domain.ChecklistItem
 import com.cnsoftware.synapse.domain.NoteColor
+import com.cnsoftware.synapse.reminder.ReminderNotice
 import com.cnsoftware.synapse.ui.common.ActionsBottomSheet
 import com.cnsoftware.synapse.ui.common.SheetActionRow
 import com.cnsoftware.synapse.ui.common.RoundedTextField
@@ -120,6 +121,12 @@ import synapse.shared.generated.resources.editor_unsaved_message
 import synapse.shared.generated.resources.editor_unsaved_title
 import synapse.shared.generated.resources.action_delete
 import synapse.shared.generated.resources.action_more
+import synapse.shared.generated.resources.action_not_now
+import synapse.shared.generated.resources.action_open_settings
+import synapse.shared.generated.resources.reminder_exact_alarm_message
+import synapse.shared.generated.resources.reminder_exact_alarm_title
+import synapse.shared.generated.resources.reminder_notifications_blocked_message
+import synapse.shared.generated.resources.reminder_notifications_blocked_title
 import synapse.shared.generated.resources.action_ok
 import synapse.shared.generated.resources.checklist_add_item
 import synapse.shared.generated.resources.checklist_completed_count
@@ -182,6 +189,7 @@ fun NoteEditorScreen(
     val allLabels by viewModel.allLabels.collectAsStateWithLifecycle()
     val pendingFocusItemId by viewModel.pendingFocusItemId.collectAsStateWithLifecycle()
     val lastSavedAt by viewModel.lastSavedAt.collectAsStateWithLifecycle()
+    val reminderNotice by viewModel.reminderNotice.collectAsStateWithLifecycle()
     var showLabelDialog by remember { mutableStateOf(false) }
     var showReminderDialog by remember { mutableStateOf(false) }
     var showColorDialog by remember { mutableStateOf(false) }
@@ -460,6 +468,39 @@ fun NoteEditorScreen(
                 showReminderDialog = false
             },
             onDismiss = { showReminderDialog = false },
+        )
+    }
+
+    reminderNotice?.let { notice ->
+        val blocked = notice == ReminderNotice.NOTIFICATIONS_BLOCKED
+        AlertDialog(
+            onDismissRequest = viewModel::dismissReminderNotice,
+            title = {
+                Text(
+                    stringResource(
+                        if (blocked) Res.string.reminder_notifications_blocked_title
+                        else Res.string.reminder_exact_alarm_title,
+                    ),
+                )
+            },
+            text = {
+                Text(
+                    stringResource(
+                        if (blocked) Res.string.reminder_notifications_blocked_message
+                        else Res.string.reminder_exact_alarm_message,
+                    ),
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = viewModel::openReminderSettings) {
+                    Text(stringResource(Res.string.action_open_settings))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::dismissReminderNotice) {
+                    Text(stringResource(Res.string.action_not_now))
+                }
+            },
         )
     }
 

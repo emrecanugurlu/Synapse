@@ -6,7 +6,9 @@ import com.cnsoftware.synapse.backup.AndroidBackupFileService
 import com.cnsoftware.synapse.backup.AutoBackupService
 import com.cnsoftware.synapse.backup.BackupFileService
 import com.cnsoftware.synapse.db.DatabaseDriverFactory
+import com.cnsoftware.synapse.reminder.AndroidReminderPermissions
 import com.cnsoftware.synapse.reminder.AndroidReminderScheduler
+import com.cnsoftware.synapse.reminder.ReminderPermissions
 import com.cnsoftware.synapse.reminder.ReminderScheduler
 import com.cnsoftware.synapse.prefs.AndroidPreferencesStore
 import com.cnsoftware.synapse.prefs.PreferencesStore
@@ -17,6 +19,7 @@ import org.koin.dsl.module
 fun platformModule(context: Context) = module {
     single { DatabaseDriverFactory(context) }
     single<ReminderScheduler> { AndroidReminderScheduler(context) }
+    single<ReminderPermissions> { AndroidReminderPermissions(context) }
     single<ShareService> { AndroidShareService(context) }
     single<PreferencesStore> { AndroidPreferencesStore(context) }
     single<BackupFileService> { AndroidBackupFileService(context) }

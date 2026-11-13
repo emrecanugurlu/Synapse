@@ -15,6 +15,8 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import com.cnsoftware.synapse.backup.AndroidFilePicker
 import com.cnsoftware.synapse.backup.AndroidFolderPicker
+import com.cnsoftware.synapse.reminder.AndroidNotificationPermission
+import com.cnsoftware.synapse.reminder.ReminderReceiver
 import kotlin.coroutines.resume
 import kotlinx.coroutines.suspendCancellableCoroutine
 import androidx.compose.runtime.Composable
@@ -43,7 +45,8 @@ private const val BACKUP_MIME = "application/json"
 class MainActivity :
     ComponentActivity(),
     AndroidFilePicker.Host,
-    AndroidFolderPicker.Host {
+    AndroidFolderPicker.Host,
+    AndroidNotificationPermission.Host {
 
     /**
      * Açılışı tetikleyen intent. Uygulama zaten açıkken gelen intent'ler
@@ -52,8 +55,27 @@ class MainActivity :
      */
     private var startAction by mutableStateOf<StartAction?>(null)
 
+    // Bildirim izni açılışta değil, kullanıcı ilk hatırlatıcıyı kurduğunda
+    // isteniyor (bkz. AndroidReminderPermissions); sonuç askıdaki coroutine'e dönüyor.
+    private var pendingNotificationResult: ((Boolean) -> Unit)? = null
+
     private val notificationPermissionLauncher =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { /* sonuç önemli değil */ }
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            pendingNotificationResult?.invoke(granted)
+            pendingNotificationResult = null
+        }
+
+    override suspend fun requestNotificationPermission(): Boolean {
+        if (Build.VERSION.SDK_INT < 33) return true
+        if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
+            return true
+        }
+        return suspendCancellableCoroutine { continuation ->
+            pendingNotificationResult = { granted -> continuation.resume(granted) }
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            continuation.invokeOnCancellation { pendingNotificationResult = null }
+        }
+    }
 
     // Storage Access Framework sonuçları askıdaki coroutine'e geri veriliyor.
     // Launcher'lar Activity kurulurken kaydedilmek zorunda; bu yüzden burada.
@@ -116,7 +138,6 @@ class MainActivity :
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
-        requestNotificationPermissionIfNeeded()
         // Yalnızca ilk açılışta: ekran döndürme veya süreç ölümünden sonra
         // Activity yeniden kurulurken aynı intent hâlâ duruyor. Yeniden
         // işlenirse paylaşılan metinle ikinci bir not açılıp kaydedilebiliyordu.
@@ -125,6 +146,7 @@ class MainActivity :
         }
         AndroidFilePicker.host = this
         AndroidFolderPicker.host = this
+        AndroidNotificationPermission.host = this
 
         setContent {
             val settings = koinInject<AppSettings>()
@@ -159,7 +181,11 @@ class MainActivity :
                 )
             }
 
-            App(startAction = startAction)
+            App(
+                startAction = startAction,
+                // İşlenen istek sıfırlanıyor ki aynısı tekrar geldiğinde de çalışsın.
+                onStartActionHandled = { startAction = null },
+            )
         }
     }
 
@@ -167,6 +193,7 @@ class MainActivity :
         // Sızıntı olmasın: köprü Activity'ye referans tutuyor.
         if (AndroidFilePicker.host === this) AndroidFilePicker.host = null
         if (AndroidFolderPicker.host === this) AndroidFolderPicker.host = null
+        if (AndroidNotificationPermission.host === this) AndroidNotificationPermission.host = null
         super.onDestroy()
     }
 
@@ -185,6 +212,8 @@ class MainActivity :
     private fun Intent.toStartAction(): StartAction? = when {
         action == ACTION_NEW_NOTE -> StartAction.NewNote
         action == ACTION_NEW_CHECKLIST -> StartAction.NewChecklist
+        action == ReminderReceiver.ACTION_OPEN_NOTE ->
+            getStringExtra(ReminderReceiver.EXTRA_NOTE_ID)?.let { StartAction.OpenNote(it) }
         action == Intent.ACTION_SEND && type == "text/plain" -> {
             val text = getStringExtra(Intent.EXTRA_TEXT).orEmpty()
             // Bazı uygulamalar (tarayıcılar) sayfa başlığını SUBJECT'te yollar.
@@ -196,14 +225,6 @@ class MainActivity :
             }
         }
         else -> null
-    }
-
-    private fun requestNotificationPermissionIfNeeded() {
-        if (Build.VERSION.SDK_INT >= 33 &&
-            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
-        ) {
-            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-        }
     }
 }
 

@@ -14,6 +14,9 @@ sealed interface StartAction {
     /** Doğrudan boş bir liste editörü aç. */
     data object NewChecklist : StartAction
 
+    /** Var olan bir notu aç (hatırlatıcı bildirimine dokunulduğunda). */
+    data class OpenNote(val noteId: String) : StartAction
+
     /** Başka bir uygulamadan paylaşılan metinle yeni not aç. */
     data class ShareText(val title: String, val text: String) : StartAction
 }

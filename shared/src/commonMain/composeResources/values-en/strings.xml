@@ -182,4 +182,12 @@
     <string name="editor_unsaved_message">This note has unsaved changes.</string>
     <string name="action_discard">Discard</string>
 
+    <!-- Reminder permission notices -->
+    <string name="action_open_settings">Open settings</string>
+    <string name="action_not_now">Not now</string>
+    <string name="reminder_notifications_blocked_title">Notifications are off</string>
+    <string name="reminder_notifications_blocked_message">The reminder is set, but it can't be shown without notification permission. You can turn it on in settings.</string>
+    <string name="reminder_exact_alarm_title">Reminder may be late</string>
+    <string name="reminder_exact_alarm_message">To have the reminder fire at the exact minute you chose, allow “Alarms &amp; reminders”. Without it the notification may arrive a few minutes late.</string>
+
 </resources>

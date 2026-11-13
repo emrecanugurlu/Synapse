@@ -9,6 +9,8 @@ import com.cnsoftware.synapse.domain.NoteColor
 import com.cnsoftware.synapse.domain.NoteRepository
 import com.cnsoftware.synapse.domain.SyncStatus
 import com.cnsoftware.synapse.prefs.AppSettings
+import com.cnsoftware.synapse.reminder.ReminderNotice
+import com.cnsoftware.synapse.reminder.ReminderPermissions
 import com.cnsoftware.synapse.reminder.ReminderScheduler
 import com.cnsoftware.synapse.reminder.reminderMessage
 import com.cnsoftware.synapse.share.ShareService
@@ -54,6 +56,7 @@ class NoteEditorViewModel(
     private val noteId: String?,
     private val repository: NoteRepository,
     private val reminderScheduler: ReminderScheduler,
+    private val reminderPermissions: ReminderPermissions,
     private val shareService: ShareService,
     private val settings: AppSettings,
     /** Yeni not doğrudan liste modunda açılsın mı (ana ekrandaki "Yeni liste" kısayolu). */
@@ -407,6 +410,43 @@ class NoteEditorViewModel(
             message = reminderMessage(state.isChecklist, state.content, state.checklistItems),
             triggerAtMillis = triggerAtMillis,
         )
+        viewModelScope.launch { checkReminderPermissions() }
+    }
+
+    /**
+     * Hatırlatıcı kurulduktan sonra kullanıcıya gösterilecek izin uyarısı.
+     * Alarm her durumda kurulur; bu yalnızca "çalmayabilir / gecikebilir" bilgisi.
+     */
+    private val _reminderNotice = MutableStateFlow<ReminderNotice?>(null)
+    val reminderNotice: StateFlow<ReminderNotice?> = _reminderNotice.asStateFlow()
+
+    private suspend fun checkReminderPermissions() {
+        // Önce bildirim izni: o yoksa alarm ne kadar dakik olursa olsun görünmez.
+        if (!reminderPermissions.ensureNotificationsAllowed()) {
+            _reminderNotice.value = ReminderNotice.NOTIFICATIONS_BLOCKED
+            return
+        }
+        if (!reminderPermissions.canScheduleExactAlarms() && !settings.exactAlarmPromptDismissed) {
+            _reminderNotice.value = ReminderNotice.EXACT_ALARM_OFF
+        }
+    }
+
+    /** Uyarıdaki "Ayarları aç": ilgili sistem ekranına götürür. */
+    fun openReminderSettings() {
+        when (_reminderNotice.value) {
+            ReminderNotice.NOTIFICATIONS_BLOCKED -> reminderPermissions.openNotificationSettings()
+            ReminderNotice.EXACT_ALARM_OFF -> reminderPermissions.openExactAlarmSettings()
+            null -> Unit
+        }
+        _reminderNotice.value = null
+    }
+
+    /** Uyarıdaki "Şimdi değil". Tam zamanlı alarm uyarısı bir daha gösterilmez. */
+    fun dismissReminderNotice() {
+        if (_reminderNotice.value == ReminderNotice.EXACT_ALARM_OFF) {
+            settings.exactAlarmPromptDismissed = true
+        }
+        _reminderNotice.value = null
     }
 
     fun clearReminder() {

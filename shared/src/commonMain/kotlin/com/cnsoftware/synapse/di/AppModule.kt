@@ -26,7 +26,7 @@ val commonModule = module {
     single<NoteRepository> { NoteRepositoryImpl(get()) }
     single { AppSettings(get()) }
     single { BackupManager(repository = get(), fileService = get()) }
-    single { ReminderCoordinator(repository = get(), scheduler = get()) }
+    single { ReminderCoordinator(repository = get(), scheduler = get(), preferences = get()) }
 
     viewModelOf(::NoteListViewModel)
     viewModelOf(::ArchiveViewModel)
@@ -39,6 +39,7 @@ val commonModule = module {
             noteId = args.noteId,
             repository = get(),
             reminderScheduler = get(),
+            reminderPermissions = get(),
             shareService = get(),
             settings = get(),
             startAsChecklist = args.startAsChecklist,

@@ -333,6 +333,13 @@ class NoteRepositoryImpl(
             }.executeAsList().map { it.toDomainNote() }
         }
 
+    override suspend fun getNotesWithDueReminders(afterMillis: Long, untilMillis: Long): List<Note> =
+        withContext(ioDispatcher) {
+            queries.selectDueReminders(afterMillis, untilMillis) { id, title, content, color, isChecklist, isPinned, isArchived, isDeleted, createdAt, updatedAt, remoteId, syncStatus, reminderAt ->
+                NoteEntity(id, title, content, color, isChecklist, isPinned, isArchived, isDeleted, createdAt, updatedAt, remoteId, syncStatus, reminderAt)
+            }.executeAsList().map { it.toDomainNote() }
+        }
+
     /**
      * Liste ekranları için: checklist olmayan notlarda gereksiz sorgu yapmadan,
      * checklist notlarında ise madde önizlemesi gösterebilmek için item'ları

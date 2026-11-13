@@ -128,6 +128,15 @@ class AppSettings(private val preferences: PreferencesStore) {
         preferences.putString(PreferencesStore.KEY_LAST_BACKUP_AT, millis.toString())
     }
 
+    /**
+     * Kullanıcı "tam zamanlı alarm izni" uyarısını "Şimdi değil" ile kapattı mı.
+     * Kapattıysa her hatırlatıcıda yeniden sorulmaz. Akış değil: yalnızca
+     * hatırlatıcı kurulurken bir kez okunuyor.
+     */
+    var exactAlarmPromptDismissed: Boolean
+        get() = preferences.getBoolean(PreferencesStore.KEY_EXACT_ALARM_PROMPT_DISMISSED, default = false)
+        set(value) = preferences.putBoolean(PreferencesStore.KEY_EXACT_ALARM_PROMPT_DISMISSED, value)
+
     fun setAutoSaveEnabled(enabled: Boolean) {
         _autoSaveEnabled.value = enabled
         preferences.putBoolean(PreferencesStore.KEY_AUTOSAVE, enabled)

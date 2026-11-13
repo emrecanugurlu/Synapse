@@ -1,6 +1,7 @@
 package com.cnsoftware.synapse.ui
 
 import com.cnsoftware.synapse.prefs.PreferencesStore
+import com.cnsoftware.synapse.reminder.ReminderPermissions
 import com.cnsoftware.synapse.reminder.ReminderScheduler
 import com.cnsoftware.synapse.share.ShareService
 
@@ -35,6 +36,24 @@ class FakeReminderScheduler : ReminderScheduler {
 
     override fun cancel(noteId: String) {
         cancelled += noteId
+    }
+}
+
+class FakeReminderPermissions(
+    var notificationsAllowed: Boolean = true,
+    var exactAlarmsAllowed: Boolean = true,
+) : ReminderPermissions {
+    var openedNotificationSettings = 0
+    var openedExactAlarmSettings = 0
+
+    override suspend fun ensureNotificationsAllowed(): Boolean = notificationsAllowed
+    override fun openNotificationSettings() {
+        openedNotificationSettings++
+    }
+
+    override fun canScheduleExactAlarms(): Boolean = exactAlarmsAllowed
+    override fun openExactAlarmSettings() {
+        openedExactAlarmSettings++
     }
 }
 

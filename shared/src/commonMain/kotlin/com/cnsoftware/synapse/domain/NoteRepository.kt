@@ -60,4 +60,10 @@ interface NoteRepository {
 
     /** Zamanı henüz gelmemiş hatırlatıcısı olan notlar (boot sonrası alarmları yeniden kurmak için). */
     suspend fun getNotesWithUpcomingReminders(afterMillis: Long): List<Note>
+
+    /**
+     * Hatırlatıcı zamanı ([afterMillis], [untilMillis]] aralığına düşen notlar
+     * (cihaz kapalıyken kaçırılan hatırlatıcıları bulmak için). Madde listesi yüklenmez.
+     */
+    suspend fun getNotesWithDueReminders(afterMillis: Long, untilMillis: Long): List<Note>
 }

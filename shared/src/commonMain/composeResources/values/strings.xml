@@ -183,4 +183,12 @@
     <string name="editor_unsaved_message">Bu notta kaydedilmemiş değişiklikler var.</string>
     <string name="action_discard">Kaydetme</string>
 
+    <!-- Hatırlatıcı izin uyarıları -->
+    <string name="action_open_settings">Ayarları aç</string>
+    <string name="action_not_now">Şimdi değil</string>
+    <string name="reminder_notifications_blocked_title">Bildirimler kapalı</string>
+    <string name="reminder_notifications_blocked_message">Hatırlatıcı kuruldu, ancak bildirim izni olmadığı için gösterilemeyecek. İzni ayarlardan açabilirsiniz.</string>
+    <string name="reminder_exact_alarm_title">Hatırlatıcı gecikebilir</string>
+    <string name="reminder_exact_alarm_message">Hatırlatıcının tam seçtiğiniz dakikada çalması için “Alarmlar ve hatırlatıcılar” iznini açın. Açmazsanız bildirim birkaç dakika gecikebilir.</string>
+
 </resources>

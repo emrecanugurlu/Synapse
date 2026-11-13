@@ -49,7 +49,7 @@ class NoteListViewModelTest {
             shareService,
             preferences,
             AppSettings(preferences),
-            ReminderCoordinator(repository, reminderScheduler),
+            ReminderCoordinator(repository, reminderScheduler, preferences),
         )
     }
 

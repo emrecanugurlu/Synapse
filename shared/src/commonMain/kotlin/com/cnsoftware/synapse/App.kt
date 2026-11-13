@@ -19,6 +19,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.backhandler.BackHandler
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.cnsoftware.synapse.domain.NoteRepository
 import com.cnsoftware.synapse.prefs.AppSettings
 import com.cnsoftware.synapse.prefs.ThemeMode
 import com.cnsoftware.synapse.ui.archive.ArchiveScreen
@@ -142,6 +143,13 @@ fun App(
      * nesne gelmeli ki `LaunchedEffect` yeniden tetiklensin.
      */
     startAction: StartAction? = null,
+    /**
+     * İstek işlendikten sonra çağrılır; platform katmanı isteği sıfırlamalı.
+     * Sıfırlanmazsa aynı istek ikinci kez geldiğinde (ör. "Yeni not" kısayoluna
+     * art arda iki kez dokunmak) değer değişmediği için hiçbir şey olmuyordu.
+     */
+    onStartActionHandled: () -> Unit = {},
+    repository: NoteRepository = koinInject(),
 ) {
     val themeMode by settings.themeMode.collectAsStateWithLifecycle()
     val darkTheme = when (themeMode) {
@@ -192,7 +200,26 @@ fun App(
                     initialTitle = startAction.title,
                     initialContent = startAction.text,
                 )
+                is StartAction.OpenNote -> {
+                    // Bildirim gösterildikten sonra not kalıcı silinmiş olabilir;
+                    // o durumda boş bir editör açmak yerine olduğumuz yerde kalıyoruz.
+                    val note = repository.getNoteById(startAction.noteId)
+                    if (note != null) {
+                        screen = Screen.Editor(
+                            noteId = note.id,
+                            editorKey = note.id,
+                            // Geri dönüşte notun bulunduğu bölüme gidilsin.
+                            origin = when {
+                                note.isDeleted -> Screen.Trash
+                                note.isArchived -> Screen.Archive
+                                else -> Screen.List
+                            },
+                        )
+                    }
+                }
             }
+            // En sonda: bu çağrı anahtarı değiştirip bu bloğu iptal ediyor.
+            if (startAction != null) onStartActionHandled()
         }
 
         fun navigate(target: Screen) {

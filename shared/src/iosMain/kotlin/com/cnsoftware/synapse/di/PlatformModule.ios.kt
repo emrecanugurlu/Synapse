@@ -5,7 +5,9 @@ import com.cnsoftware.synapse.backup.BackupFileService
 import com.cnsoftware.synapse.backup.IosAutoBackupService
 import com.cnsoftware.synapse.backup.IosBackupFileService
 import com.cnsoftware.synapse.db.DatabaseDriverFactory
+import com.cnsoftware.synapse.reminder.IosReminderPermissions
 import com.cnsoftware.synapse.reminder.IosReminderScheduler
+import com.cnsoftware.synapse.reminder.ReminderPermissions
 import com.cnsoftware.synapse.reminder.ReminderScheduler
 import com.cnsoftware.synapse.prefs.IosPreferencesStore
 import com.cnsoftware.synapse.prefs.PreferencesStore
@@ -16,6 +18,7 @@ import org.koin.dsl.module
 fun platformModule() = module {
     single { DatabaseDriverFactory() }
     single<ReminderScheduler> { IosReminderScheduler() }
+    single<ReminderPermissions> { IosReminderPermissions() }
     single<ShareService> { IosShareService() }
     single<PreferencesStore> { IosPreferencesStore() }
     single<BackupFileService> { IosBackupFileService() }

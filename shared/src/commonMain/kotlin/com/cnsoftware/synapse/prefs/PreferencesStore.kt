@@ -22,5 +22,6 @@ interface PreferencesStore {
         const val KEY_AUTO_BACKUP = "auto_backup_frequency"
         const val KEY_BACKUP_FOLDER = "auto_backup_folder_uri"
         const val KEY_LAST_BACKUP_AT = "auto_backup_last_at"
+        const val KEY_EXACT_ALARM_PROMPT_DISMISSED = "exact_alarm_prompt_dismissed"
     }
 }

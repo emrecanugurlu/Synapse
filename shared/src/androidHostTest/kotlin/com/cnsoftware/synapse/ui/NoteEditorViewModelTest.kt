@@ -7,6 +7,7 @@ import com.cnsoftware.synapse.db.NoteDatabase
 import com.cnsoftware.synapse.domain.Note
 import com.cnsoftware.synapse.domain.NoteColor
 import com.cnsoftware.synapse.prefs.AppSettings
+import com.cnsoftware.synapse.reminder.ReminderNotice
 import com.cnsoftware.synapse.ui.editor.NoteEditorViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -30,6 +31,7 @@ class NoteEditorViewModelTest {
     private lateinit var driver: SqlDriver
     private lateinit var repository: NoteRepositoryImpl
     private lateinit var reminderScheduler: FakeReminderScheduler
+    private lateinit var reminderPermissions: FakeReminderPermissions
     private lateinit var shareService: FakeShareService
     private lateinit var settings: AppSettings
 
@@ -40,6 +42,7 @@ class NoteEditorViewModelTest {
         NoteDatabase.Schema.create(driver)
         repository = NoteRepositoryImpl(NoteDatabase(driver), dispatcher)
         reminderScheduler = FakeReminderScheduler()
+        reminderPermissions = FakeReminderPermissions()
         shareService = FakeShareService()
         settings = AppSettings(FakePreferencesStore())
     }
@@ -58,6 +61,7 @@ class NoteEditorViewModelTest {
         noteId = noteId,
         repository = repository,
         reminderScheduler = reminderScheduler,
+        reminderPermissions = reminderPermissions,
         shareService = shareService,
         settings = settings,
         startAsChecklist = startAsChecklist,
@@ -72,6 +76,57 @@ class NoteEditorViewModelTest {
         createdAt = 1L,
         updatedAt = 1L,
     )
+
+    @Test
+    fun settingReminderWithEverythingAllowedShowsNoNotice() = runTest(dispatcher) {
+        val viewModel = editorFor(null)
+        advanceUntilIdle()
+
+        viewModel.setReminder(5_000L)
+        advanceUntilIdle()
+
+        assertEquals(1, reminderScheduler.scheduled.size)
+        assertEquals(null, viewModel.reminderNotice.value)
+    }
+
+    @Test
+    fun blockedNotificationsAreReportedAndSettingsCanBeOpened() = runTest(dispatcher) {
+        reminderPermissions.notificationsAllowed = false
+        // Bildirim kapalıyken dakiklik uyarısı anlamsız; yalnızca ilki gösterilmeli.
+        reminderPermissions.exactAlarmsAllowed = false
+        val viewModel = editorFor(null)
+        advanceUntilIdle()
+
+        viewModel.setReminder(5_000L)
+        advanceUntilIdle()
+
+        // Alarm yine de kurulur: izin sonradan verilirse çalsın.
+        assertEquals(1, reminderScheduler.scheduled.size)
+        assertEquals(ReminderNotice.NOTIFICATIONS_BLOCKED, viewModel.reminderNotice.value)
+
+        viewModel.openReminderSettings()
+        assertEquals(1, reminderPermissions.openedNotificationSettings)
+        assertEquals(null, viewModel.reminderNotice.value)
+    }
+
+    @Test
+    fun exactAlarmNoticeIsNotRepeatedAfterNotNow() = runTest(dispatcher) {
+        reminderPermissions.exactAlarmsAllowed = false
+        val viewModel = editorFor(null)
+        advanceUntilIdle()
+
+        viewModel.setReminder(5_000L)
+        advanceUntilIdle()
+        assertEquals(ReminderNotice.EXACT_ALARM_OFF, viewModel.reminderNotice.value)
+
+        viewModel.dismissReminderNotice()
+        assertEquals(null, viewModel.reminderNotice.value)
+
+        // "Şimdi değil" dendikten sonra her hatırlatıcıda yeniden sorulmaz.
+        viewModel.setReminder(6_000L)
+        advanceUntilIdle()
+        assertEquals(null, viewModel.reminderNotice.value)
+    }
 
     @Test
     fun openingAndClosingWithoutChangesDoesNotTouchTheNote() = runTest(dispatcher) {

@@ -81,6 +81,12 @@ DELETE FROM Note WHERE isDeleted = 1;
 selectUpcomingReminders:
 SELECT * FROM Note WHERE isDeleted = 0 AND reminderAt IS NOT NULL AND reminderAt > ?;
 
+-- Cihaz kapaliyken zamani gecmis hatirlaticilar: (after, until] araligi.
+selectDueReminders:
+SELECT * FROM Note
+WHERE isDeleted = 0 AND reminderAt IS NOT NULL AND reminderAt > :after AND reminderAt <= :until
+ORDER BY reminderAt;
+
 -- Checklist items
 selectItemsForNote:
 SELECT * FROM ChecklistItem WHERE noteId = ? ORDER BY position ASC;

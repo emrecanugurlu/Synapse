@@ -10,7 +10,7 @@ class AndroidReminderScheduler(private val context: Context) : ReminderScheduler
 
     override fun schedule(noteId: String, title: String, message: String, triggerAtMillis: Long) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val pendingIntent = pendingIntentFor(noteId, title, message)
+        val pendingIntent = pendingIntentFor(noteId, title, message, triggerAtMillis)
         val canExact = Build.VERSION.SDK_INT < 31 || alarmManager.canScheduleExactAlarms()
         if (canExact) {
             alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
@@ -24,14 +24,20 @@ class AndroidReminderScheduler(private val context: Context) : ReminderScheduler
 
     override fun cancel(noteId: String) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        alarmManager.cancel(pendingIntentFor(noteId, title = "", message = ""))
+        alarmManager.cancel(pendingIntentFor(noteId, title = "", message = "", triggerAtMillis = 0L))
     }
 
-    private fun pendingIntentFor(noteId: String, title: String, message: String): PendingIntent {
+    private fun pendingIntentFor(
+        noteId: String,
+        title: String,
+        message: String,
+        triggerAtMillis: Long,
+    ): PendingIntent {
         val intent = Intent(context, ReminderReceiver::class.java).apply {
             putExtra(ReminderReceiver.EXTRA_NOTE_ID, noteId)
             putExtra(ReminderReceiver.EXTRA_TITLE, title)
             putExtra(ReminderReceiver.EXTRA_MESSAGE, message)
+            putExtra(ReminderReceiver.EXTRA_TRIGGER_AT, triggerAtMillis)
         }
         return PendingIntent.getBroadcast(
             context,

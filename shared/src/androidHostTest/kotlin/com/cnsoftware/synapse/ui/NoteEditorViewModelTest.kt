@@ -50,8 +50,144 @@ class NoteEditorViewModelTest {
         driver.close()
     }
 
-    private fun editorFor(noteId: String?, startAsChecklist: Boolean = false) =
-        NoteEditorViewModel(noteId, repository, reminderScheduler, shareService, settings, startAsChecklist)
+    private fun editorFor(
+        noteId: String?,
+        startAsChecklist: Boolean = false,
+        newNoteId: String? = null,
+    ) = NoteEditorViewModel(
+        noteId = noteId,
+        repository = repository,
+        reminderScheduler = reminderScheduler,
+        shareService = shareService,
+        settings = settings,
+        startAsChecklist = startAsChecklist,
+        newNoteId = newNoteId,
+    )
+
+    private fun storedNote(id: String, title: String = "Başlık") = Note(
+        id = id,
+        title = title,
+        content = "içerik",
+        color = NoteColor.DEFAULT,
+        createdAt = 1L,
+        updatedAt = 1L,
+    )
+
+    @Test
+    fun openingAndClosingWithoutChangesDoesNotTouchTheNote() = runTest(dispatcher) {
+        repository.upsertNote(storedNote("n1"))
+
+        val viewModel = editorFor("n1")
+        advanceUntilIdle()
+        // Yükleme sonrası otomatik kaydetme penceresi de geçsin.
+        advanceTimeBy(1_000)
+        viewModel.save()
+        advanceUntilIdle()
+
+        // "Son düzenleme" değişmemeli; not yalnızca okundu.
+        assertEquals(1L, repository.getNoteById("n1")?.updatedAt)
+    }
+
+    @Test
+    fun reopeningPicksUpChangesMadeOutsideTheEditor() = runTest(dispatcher) {
+        repository.upsertNote(storedNote("n1"))
+        val label = repository.createLabel("iş")
+
+        // İlk açılış ve çıkış.
+        val viewModel = editorFor("n1")
+        advanceUntilIdle()
+        viewModel.save()
+        advanceUntilIdle()
+
+        // Not kapalıyken listeden sabitlendi, etiketlendi ve arşivlendi.
+        repository.setPinned("n1", true)
+        repository.setLabelForNotes(listOf("n1"), label.id, assigned = true)
+        repository.setArchived("n1", true)
+
+        // Aynı ViewModel örneğiyle (önbellekten) yeniden açılıp düzenleniyor.
+        viewModel.onOpened()
+        advanceUntilIdle()
+        assertEquals(true, viewModel.uiState.value.isArchived)
+
+        viewModel.onTitleChange("Düzenlendi")
+        viewModel.save()
+        advanceUntilIdle()
+
+        val saved = repository.getNoteById("n1")
+        assertEquals("Düzenlendi", saved?.title)
+        assertEquals(true, saved?.isPinned)
+        assertEquals(true, saved?.isArchived)
+        assertEquals(listOf("iş"), saved?.labels?.map { it.name })
+    }
+
+    @Test
+    fun reopeningKeepsUnsavedTextInsteadOfReloading() = runTest(dispatcher) {
+        settings.setAutoSaveEnabled(false)
+        repository.upsertNote(storedNote("n1"))
+
+        val viewModel = editorFor("n1")
+        advanceUntilIdle()
+        viewModel.onTitleChange("Yarım kalan")
+
+        // Ekran döndürme: aynı ViewModel ile ekran yeniden kuruluyor.
+        viewModel.onOpened()
+        advanceUntilIdle()
+
+        assertEquals("Yarım kalan", viewModel.uiState.value.title)
+    }
+
+    @Test
+    fun discardedChangesDoNotComeBack() = runTest(dispatcher) {
+        settings.setAutoSaveEnabled(false)
+        repository.upsertNote(storedNote("n1", title = "Asıl"))
+
+        val viewModel = editorFor("n1")
+        advanceUntilIdle()
+        viewModel.onTitleChange("Vazgeçilecek")
+        viewModel.discardChanges()
+
+        assertEquals("Asıl", viewModel.uiState.value.title)
+        assertEquals(false, viewModel.hasUnsavedChanges.value)
+    }
+
+    @Test
+    fun pendingAutosaveDoesNotBringDeletedNoteBack() = runTest(dispatcher) {
+        repository.upsertNote(storedNote("n1"))
+
+        val viewModel = editorFor("n1")
+        advanceUntilIdle()
+
+        // Otomatik kaydetme beklerken (600ms dolmadan) not siliniyor.
+        viewModel.onTitleChange("Son anda yazıldı")
+        viewModel.delete()
+        advanceTimeBy(1_000)
+        advanceUntilIdle()
+
+        assertEquals(listOf("n1"), repository.observeTrashedNotes().first().map { it.id })
+        assertTrue(repository.observeActiveNotes().first().isEmpty())
+    }
+
+    @Test
+    fun newNoteUsesGivenIdAndResumesFromItAfterRestore() = runTest(dispatcher) {
+        val first = editorFor(noteId = null, newNoteId = "k1")
+        advanceUntilIdle()
+        first.onTitleChange("Taslak")
+        first.save()
+        advanceUntilIdle()
+        assertEquals("Taslak", repository.getNoteById("k1")?.title)
+
+        // Süreç ölümünden sonra: aynı id ile yeni bir ViewModel kuruluyor.
+        val restored = editorFor(noteId = null, newNoteId = "k1")
+        advanceUntilIdle()
+        assertEquals("Taslak", restored.uiState.value.title)
+
+        restored.onTitleChange("Taslak 2")
+        restored.save()
+        advanceUntilIdle()
+
+        // İkinci bir kopya oluşmamalı.
+        assertEquals(listOf("Taslak 2"), repository.observeActiveNotes().first().map { it.title })
+    }
 
     @Test
     fun newNoteIsPersistedOnSave() = runTest(dispatcher) {

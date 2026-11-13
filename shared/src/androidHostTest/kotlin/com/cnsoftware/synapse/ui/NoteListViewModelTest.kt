@@ -4,9 +4,11 @@ import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import com.cnsoftware.synapse.data.NoteRepositoryImpl
 import com.cnsoftware.synapse.db.NoteDatabase
+import com.cnsoftware.synapse.domain.ChecklistItem
 import com.cnsoftware.synapse.domain.Note
 import com.cnsoftware.synapse.domain.NoteColor
 import com.cnsoftware.synapse.prefs.AppSettings
+import com.cnsoftware.synapse.reminder.ReminderCoordinator
 import com.cnsoftware.synapse.ui.notelist.NoteListViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -30,6 +32,7 @@ class NoteListViewModelTest {
     private lateinit var driver: SqlDriver
     private lateinit var repository: NoteRepositoryImpl
     private lateinit var shareService: FakeShareService
+    private lateinit var reminderScheduler: FakeReminderScheduler
     private lateinit var viewModel: NoteListViewModel
 
     @BeforeTest
@@ -39,12 +42,14 @@ class NoteListViewModelTest {
         NoteDatabase.Schema.create(driver)
         repository = NoteRepositoryImpl(NoteDatabase(driver), dispatcher)
         shareService = FakeShareService()
+        reminderScheduler = FakeReminderScheduler()
         val preferences = FakePreferencesStore()
         viewModel = NoteListViewModel(
             repository,
             shareService,
             preferences,
             AppSettings(preferences),
+            ReminderCoordinator(repository, reminderScheduler),
         )
     }
 
@@ -121,6 +126,54 @@ class NoteListViewModelTest {
         assertTrue(shareService.sharedTexts.single().contains("Bir"))
         assertTrue(shareService.sharedTexts.single().contains("İki"))
         assertTrue(viewModel.selectedIds.value.isEmpty())
+        collector.cancel()
+    }
+
+    @Test
+    fun searchFindsChecklistItemsAndIgnoresTurkishCase() = runTest(dispatcher) {
+        repository.upsertNote(
+            note("liste", "Alışveriş").copy(
+                isChecklist = true,
+                checklistItems = listOf(ChecklistItem(id = "c1", text = "Çay ve ıspanak")),
+            ),
+        )
+        repository.upsertNote(note("diger", "Toplantı"))
+
+        val collector = launch { viewModel.notes.collect {} }
+        advanceUntilIdle()
+
+        // Liste maddesinde geçiyor; küçük harfle yazılan "ç" büyük "Ç"yi bulmalı.
+        viewModel.onSearchQueryChange("çay")
+        advanceUntilIdle()
+        assertEquals(listOf("liste"), viewModel.notes.value.map { it.id })
+
+        // Türkçe I/ı: büyük harfle yazılan sorgu küçük "ı"lı metni bulmalı.
+        viewModel.onSearchQueryChange("ISPANAK")
+        advanceUntilIdle()
+        assertEquals(listOf("liste"), viewModel.notes.value.map { it.id })
+
+        collector.cancel()
+    }
+
+    @Test
+    fun trashingCancelsReminderAndUndoSchedulesItAgain() = runTest(dispatcher) {
+        val reminderAt = System.currentTimeMillis() + 60 * 60 * 1000
+        val reminderNote = note("1", "Hatırlat").copy(reminderAt = reminderAt)
+        repository.upsertNote(reminderNote)
+
+        val collector = launch { viewModel.notes.collect {} }
+        advanceUntilIdle()
+
+        viewModel.moveToTrash(reminderNote)
+        advanceUntilIdle()
+        assertEquals(listOf("1"), reminderScheduler.cancelled)
+
+        val undo = viewModel.undoEvent.value
+        assertNotNull(undo)
+        viewModel.performUndo(undo)
+        advanceUntilIdle()
+
+        assertEquals(listOf("1" to reminderAt), reminderScheduler.scheduled)
         collector.cancel()
     }
 }

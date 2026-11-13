@@ -28,3 +28,8 @@ actual fun combineDateTime(dateUtcMidnightMillis: Long, hour: Int, minute: Int):
 
 actual fun formatDateTime(millis: Long): String =
     SimpleDateFormat("d MMM HH:mm", Locale.getDefault()).format(Date(millis))
+
+actual fun formatBackupTimestamp(millis: Long): String =
+    // Locale.ROOT: cihaz Arapça rakam kullanan bir yerelde olsa bile dosya adı
+    // ASCII kalsın.
+    SimpleDateFormat("yyyy-MM-dd-HHmm", Locale.ROOT).format(Date(millis))

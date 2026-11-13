@@ -11,6 +11,26 @@ enum class ThemeMode {
     DARK,
 }
 
+/**
+ * Otomatik yedek sıklığı.
+ *
+ * Varsayılan kapalı: kullanıcı bir klasör seçmeden yazacak yer yok, ve
+ * habersiz arka plan işi pil/depolama harcamamalı.
+ */
+enum class AutoBackupFrequency(val hours: Long) {
+    OFF(0),
+    DAILY(24),
+    WEEKLY(24 * 7),
+    ;
+
+    companion object {
+        val DEFAULT = OFF
+
+        fun fromName(name: String?): AutoBackupFrequency =
+            entries.firstOrNull { it.name == name } ?: DEFAULT
+    }
+}
+
 /** Çöp kutusundaki notların kalıcı silinmeden önce bekleyeceği süre. */
 enum class TrashRetention(val days: Int) {
     WEEK(7),
@@ -69,6 +89,43 @@ class AppSettings(private val preferences: PreferencesStore) {
     fun setLabelFiltersVisible(visible: Boolean) {
         _labelFiltersVisible.value = visible
         preferences.putBoolean(PreferencesStore.KEY_LABEL_FILTERS, visible)
+    }
+
+    // --- Otomatik yedek ---
+
+    private val _autoBackupFrequency = MutableStateFlow(
+        AutoBackupFrequency.fromName(preferences.getString(PreferencesStore.KEY_AUTO_BACKUP)),
+    )
+    val autoBackupFrequency: StateFlow<AutoBackupFrequency> = _autoBackupFrequency.asStateFlow()
+
+    /**
+     * Yedeklerin yazılacağı klasörün kalıcı izinli URI'si.
+     * Boşsa otomatik yedek çalışamaz; kullanıcının klasör seçmesi gerekir.
+     */
+    private val _backupFolderUri = MutableStateFlow(
+        preferences.getString(PreferencesStore.KEY_BACKUP_FOLDER).orEmpty(),
+    )
+    val backupFolderUri: StateFlow<String> = _backupFolderUri.asStateFlow()
+
+    /** Son başarılı otomatik yedeğin zamanı; 0 ise henüz alınmadı. */
+    private val _lastBackupAt = MutableStateFlow(
+        preferences.getString(PreferencesStore.KEY_LAST_BACKUP_AT)?.toLongOrNull() ?: 0L,
+    )
+    val lastBackupAt: StateFlow<Long> = _lastBackupAt.asStateFlow()
+
+    fun setAutoBackupFrequency(frequency: AutoBackupFrequency) {
+        _autoBackupFrequency.value = frequency
+        preferences.putString(PreferencesStore.KEY_AUTO_BACKUP, frequency.name)
+    }
+
+    fun setBackupFolderUri(uri: String) {
+        _backupFolderUri.value = uri
+        preferences.putString(PreferencesStore.KEY_BACKUP_FOLDER, uri)
+    }
+
+    fun setLastBackupAt(millis: Long) {
+        _lastBackupAt.value = millis
+        preferences.putString(PreferencesStore.KEY_LAST_BACKUP_AT, millis.toString())
     }
 
     fun setAutoSaveEnabled(enabled: Boolean) {

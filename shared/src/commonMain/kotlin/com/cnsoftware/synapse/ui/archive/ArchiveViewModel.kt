@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.cnsoftware.synapse.domain.Note
 import com.cnsoftware.synapse.domain.NoteRepository
+import com.cnsoftware.synapse.reminder.ReminderCoordinator
 import com.cnsoftware.synapse.ui.common.UndoEvent
 import com.cnsoftware.synapse.util.currentTimeMillis
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -21,6 +22,7 @@ import synapse.shared.generated.resources.undo_unarchived
 
 class ArchiveViewModel(
     private val repository: NoteRepository,
+    private val reminders: ReminderCoordinator,
 ) : ViewModel() {
 
     private val _searchQuery = MutableStateFlow("")
@@ -74,8 +76,11 @@ class ArchiveViewModel(
         clearSelection()
         viewModelScope.launch {
             ids.forEach { repository.moveToTrash(it) }
+            // Çöpteki not için bildirim çalmasın; geri alınırsa yeniden kurulur.
+            reminders.cancel(ids)
             _undoEvent.value = UndoEvent(currentTimeMillis(), Res.string.undo_trashed, ids.size) {
                 ids.forEach { repository.restoreFromTrash(it) }
+                reminders.reschedule(ids)
             }
         }
     }
@@ -92,8 +97,10 @@ class ArchiveViewModel(
     fun moveToTrash(note: Note) {
         viewModelScope.launch {
             repository.moveToTrash(note.id)
+            reminders.cancel(listOf(note.id))
             _undoEvent.value = UndoEvent(currentTimeMillis(), Res.string.undo_trashed, 1) {
                 repository.restoreFromTrash(note.id)
+                reminders.reschedule(listOf(note.id))
             }
         }
     }

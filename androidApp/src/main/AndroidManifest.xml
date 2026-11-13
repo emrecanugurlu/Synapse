@@ -13,8 +13,13 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Synapse">
+        <!--
+          launchMode=singleTask: kısayol veya paylaşımla açılınca yeni bir
+          Activity yığılmasın; var olan örnek onNewIntent ile devam etsin.
+        -->
         <activity
             android:exported="true"
+            android:launchMode="singleTask"
             android:name=".MainActivity"
             android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.Synapse.Starting">
@@ -23,6 +28,27 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!-- Başka uygulamalardan metin paylaşımı -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+
+            <!-- Launcher ikonuna basılı tutunca çıkan kısayollar -->
+            <intent-filter>
+                <action android:name="com.cnsoftware.synapse.NEW_NOTE" />
+                <action android:name="com.cnsoftware.synapse.NEW_CHECKLIST" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
         </activity>
 
         <receiver

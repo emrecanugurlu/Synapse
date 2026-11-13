@@ -106,6 +106,11 @@
     <string name="checklist_remove_item">Öğeyi sil</string>
     <string name="checklist_completed_count">%1$d tamamlandı</string>
     <string name="checklist_drag_handle">Sıralamak için sürükle</string>
+    <string name="checklist_check_all">Tümünü işaretle</string>
+    <string name="checklist_uncheck_all">İşaretleri kaldır</string>
+    <string name="checklist_clear_completed">Tamamlananları temizle</string>
+    <string name="stats_checklist">%1$d / %2$d tamamlandı</string>
+    <string name="stats_text">%1$d kelime · %2$d karakter</string>
 
     <!-- Etiketler -->
     <string name="label_remove">Etiketi kaldır</string>
@@ -115,9 +120,6 @@
     <string name="label_color">Renk</string>
     <string name="label_icon">Simge</string>
     <string name="labels_edit_title">Etiketi düzenle</string>
-    <string name="labels_rename">Yeniden adlandır</string>
-    <string name="labels_rename_title">Etiketi yeniden adlandır</string>
-    <string name="labels_merge">Birleştir</string>
     <string name="labels_merge_menu">Başka etiketle birleştir</string>
     <string name="labels_merge_title">\"%1$s\" şununla birleştir</string>
     <string name="labels_merge_message">Bu etiketteki notlar seçtiğin etikete taşınır ve \"%1$s\" silinir.</string>
@@ -151,6 +153,25 @@
     <string name="settings_retention_7">7 gün</string>
     <string name="settings_retention_14">14 gün</string>
     <string name="settings_retention_30">30 gün</string>
+
+    <string name="settings_backup">Yedekleme</string>
+    <string name="settings_backup_description">Notlarını ve etiketlerini bir dosyaya aktar. Geri yüklerken mevcut notlar silinmez, yedektekiler eklenir.</string>
+    <string name="settings_backup_export">Yedek al</string>
+    <string name="settings_backup_import">Geri yükle</string>
+    <string name="backup_success">Tamamlandı</string>
+    <string name="backup_error_invalid">Dosya okunamadı. Geçerli bir Synapse yedeği mi?</string>
+    <string name="backup_error_version">Bu yedek daha yeni bir sürümle alınmış. Uygulamayı güncelle.</string>
+    <string name="backup_error_io">İşlem tamamlanamadı. Tekrar dene.</string>
+    <string name="settings_auto_backup">Otomatik yedek</string>
+    <string name="settings_auto_backup_off">Kapalı</string>
+    <string name="settings_auto_backup_daily">Günlük</string>
+    <string name="settings_auto_backup_weekly">Haftalık</string>
+    <string name="settings_backup_folder">Yedek klasörü</string>
+    <string name="settings_backup_folder_none">Seçilmedi</string>
+    <string name="settings_backup_folder_set">Seçildi</string>
+    <string name="settings_backup_folder_lost">Klasöre erişilemiyor. Yeniden seç.</string>
+    <string name="settings_backup_folder_choose">Seç</string>
+    <string name="settings_backup_last">Son yedek: %1$s</string>
 
     <string name="settings_label_filters">Filtre şeridi</string>
     <string name="settings_label_filters_description">Not listesinin üstünde etiket filtrelerini gösterir</string>

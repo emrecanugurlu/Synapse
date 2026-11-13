@@ -1,6 +1,6 @@
 # Synapse — Gizlilik Politikası
 
-**Son güncelleme:** 3 Ağustos 2026
+**Son güncelleme:** 8 Ağustos 2026
 **Geliştirici:** CN Software
 **İletişim:** emrecnugurlu@gmail.com
 
@@ -8,103 +8,120 @@
 
 ## Kısaca
 
-Synapse notlarınızı yalnızca cihazınızda saklar. Hesap açmanız gerekmez, sunucumuza hiçbir veri gönderilmez, reklam ve analiz aracı kullanılmaz.
+Synapse notlarınızı yalnızca cihazınızda saklar. Hesap açmanız gerekmez, geliştiriciye ait bir sunucu yoktur, reklam ve analiz aracı kullanılmaz.
 
 ## Topladığımız veriler
 
-**Hiçbiri.** Synapse'in sunucusu yoktur. Uygulama size ait hiçbir veriyi geliştiriciye veya üçüncü taraflara aktarmaz.
+**Hiçbiri.** Synapse uygulamasının sunucusu yoktur. Uygulama size ait hiçbir veriyi geliştiriciye veya üçüncü taraflara aktarmaz.
 
-Oluşturduğunuz içerik — notlar, liste maddeleri, etiketler, renkler ve hatırlatıcı zamanları — cihazınızdaki uygulama alanında, yerel bir veritabanında tutulur. Uygulamayı kaldırdığınızda bu veriler cihazdan silinir.
+Oluşturduğunuz içerik — notlar, liste maddeleri, etiketler, renkler, simgeler ve hatırlatıcı zamanları — cihazınızdaki uygulama alanında, yerel bir veritabanında tutulur. Uygulamayı kaldırdığınızda bu veriler cihazdan silinir.
 
 ## Verilerinizin cihaz dışına çıkabileceği durumlar
 
-Bunlar bizim eriştiğimiz süreçler değildir; işletim sisteminin sağladığı ve sizin kontrolünüzde olan işlevlerdir:
+Bu durumların hepsini siz başlatırsınız; hiçbiri kendiliğinden olmaz.
 
-- **Cihaz yedeklemesi.** Android'de sistem yedeklemesi açıksa uygulama verileri Google hesabınıza bağlı yedeğe dahil edilebilir. iOS'ta iCloud veya bilgisayar yedeklemesi aynı şekilde çalışır. Bu yedekler Google ya da Apple'ın gizlilik politikalarına tabidir; cihaz ayarlarınızdan kapatabilirsiniz.
-- **Paylaşma.** Bir notu paylaştığınızda içerik, seçtiğiniz uygulamaya (mesajlaşma, e-posta vb.) aktarılır. Bundan sonrası o uygulamanın politikasına tabidir.
+**Yedekleme.** Ayarlar bölümünden bir yedek dosyası oluşturabilirsiniz. Bu dosya notlarınızın tamamını okunabilir metin (JSON) olarak içerir ve **sizin seçtiğiniz konuma** yazılır. Konumu siz belirlediğiniz için dosyanın nereye gittiğinden ve kimlerin erişebileceğinden siz sorumlusunuz. Örneğin bulut senkronizasyonu yapan bir klasör seçerseniz, yedek o bulut hizmetine de yüklenir.
 
-## İzinler ve neden isteniyor
+**Otomatik yedekleme.** Açarsanız, uygulama seçtiğiniz klasöre belirlediğiniz sıklıkta (günlük veya haftalık) aynı biçimde yedek yazar. Bu özellik varsayılan olarak kapalıdır ve klasör seçmeden çalışmaz. İstediğiniz an Ayarlar'dan kapatabilirsiniz.
 
-| İzin | Kullanım amacı |
+**Paylaşma.** Bir notu paylaştığınızda, notun metni sistemin paylaşım menüsü aracılığıyla seçtiğiniz uygulamaya iletilir. O noktadan sonra veriniz hedef uygulamanın gizlilik politikasına tabidir.
+
+**Cihaz yedeği.** Android'in kendi yedekleme özelliği (Google Yedekleme) etkinse, işletim sistemi uygulama verilerini Google hesabınıza yedekleyebilir. Bu işlem Android tarafından yürütülür; geliştiricinin bu verilere erişimi yoktur. Cihazınızın ayarlarından kapatabilirsiniz.
+
+## Dosya erişimi
+
+Uygulama cihazınızdaki dosyalara genel erişim istemez. Yedek alırken veya geri yüklerken sistemin dosya seçicisi açılır ve **yalnızca sizin seçtiğiniz dosya ya da klasöre** erişilir. Otomatik yedekleme için seçtiğiniz klasörün izni cihazınızda saklanır; bu izni Android ayarlarından istediğiniz an geri alabilirsiniz.
+
+## İzinler
+
+| İzin | Neden gerekli |
 |---|---|
-| Bildirim gönderme | Kurduğunuz hatırlatıcıları zamanı geldiğinde göstermek |
-| Tam zamanlı alarm | Hatırlatıcının belirlediğiniz dakikada çalması |
-| Yeniden başlatmada çalışma | Cihaz yeniden başladıktan sonra kurulu hatırlatıcıları yeniden zamanlamak |
+| Bildirimler (`POST_NOTIFICATIONS`) | Kurduğunuz hatırlatıcıları gösterebilmek için. Vermezseniz uygulamanın geri kalanı çalışmaya devam eder, yalnızca hatırlatıcı bildirimi görünmez. |
+| Tam zamanlı alarm (`SCHEDULE_EXACT_ALARM`) | Hatırlatıcının belirlediğiniz dakikada çalması için. Bu izin olmadan bildirim gecikmeli gelebilir. |
+| Yeniden başlatmada çalıştırma (`RECEIVE_BOOT_COMPLETED`) | Cihaz kapanıp açıldığında kurulu hatırlatıcıların yeniden zamanlanması için. |
 
-Uygulama; kamera, konum, rehber, mikrofon veya dosya erişimi istemez.
-
-## Üçüncü taraf hizmetler
-
-Synapse hiçbir analiz, reklam, çökme raporlama veya bulut senkronizasyon hizmeti kullanmaz. Uygulama içinde ağ bağlantısı kurulmaz.
+Uygulama internet izni istemez ve ağ bağlantısı kurmaz.
 
 ## Çocukların gizliliği
 
-Uygulama veri toplamadığı için çocuklardan da veri toplamaz.
+Synapse çocuklara yönelik değildir ve yaş, kimlik veya konum gibi kişisel bilgi toplamaz.
 
-## Haklarınız
+## Üçüncü taraf hizmetler
 
-Verileriniz yalnızca sizde olduğundan silme veya dışa aktarma talebi için bize başvurmanıza gerek yoktur. Bir notu uygulama içinden silebilir, tüm verileri uygulamayı kaldırarak kaldırabilirsiniz.
+Uygulama reklam ağı, analiz veya çökme raporlama hizmeti içermez. Yalnızca açık kaynak yazılım kütüphaneleri kullanılır ve bunların hiçbiri veri toplamaz.
 
-## Değişiklikler
+## Verilerinizi silme
 
-Bu politika değişirse güncel sürüm bu adreste yayımlanır ve yukarıdaki tarih güncellenir. İleride bulut senkronizasyonu gibi veri aktaran bir özellik eklenirse, bu politika özellik yayımlanmadan önce güncellenecektir.
+Notlarınız yalnızca cihazınızda olduğu için uygulamayı kaldırmak verilerinizi siler. Uygulama içinden tek tek not silebilir, çöp kutusunu boşaltabilir veya cihaz ayarlarından uygulama verilerini temizleyebilirsiniz. Geliştiricinin silinecek bir kopyası yoktur.
+
+## Bu politikadaki değişiklikler
+
+Politika güncellenirse bu sayfadaki "Son güncelleme" tarihi değişir. Veri işleme biçimini etkileyen önemli bir değişiklik olursa uygulama içinde bilgilendirme yapılır.
 
 ## İletişim
 
-Sorularınız için: emrecnugurlu@gmail.com
+Soru veya talepleriniz için: **emrecnugurlu@gmail.com**
 
----
 ---
 
 # Synapse — Privacy Policy
 
-**Last updated:** August 3, 2026
+**Last updated:** 8 August 2026
 **Developer:** CN Software
 **Contact:** emrecnugurlu@gmail.com
 
 ## In short
 
-Synapse keeps your notes on your device only. No account is required, no data is sent to our servers, and the app contains no ads or analytics.
+Synapse keeps your notes on your device only. No account is required, the developer runs no server, and the app contains no ads or analytics.
 
 ## Data we collect
 
-**None.** Synapse has no server. The app does not transmit any of your data to the developer or to third parties.
+**None.** Synapse has no server. The app sends none of your data to the developer or to any third party.
 
-The content you create — notes, list items, labels, colors and reminder times — is stored in a local database inside the app's private storage on your device. Uninstalling the app removes this data from the device.
+The content you create — notes, list items, labels, colours, icons and reminder times — is stored in a local database inside the app's own storage on your device. Uninstalling the app removes it.
 
-## When your data may leave the device
+## When your data can leave the device
 
-These are not processes we have access to; they are operating-system features under your control:
+You start every one of these; none happens on its own.
 
-- **Device backup.** On Android, if system backup is enabled, app data may be included in the backup tied to your Google account. On iOS, iCloud or computer backups work the same way. Those backups are governed by Google's or Apple's privacy policies and can be turned off in your device settings.
-- **Sharing.** When you share a note, its content is passed to the app you choose (messaging, email, etc.). What happens next is governed by that app's policy.
+**Backup.** From Settings you can create a backup file. It contains all of your notes as readable text (JSON) and is written to **a location you choose**. Because you choose the location, you control where the file goes and who can reach it. If you pick a folder that syncs to a cloud service, the backup is uploaded there too.
 
-## Permissions and why they are requested
+**Automatic backup.** If you turn it on, the app writes the same kind of file to your chosen folder at the interval you set (daily or weekly). This is off by default and does nothing until you pick a folder. You can turn it off in Settings at any time.
 
-| Permission | Purpose |
+**Sharing.** When you share a note, its text is passed through the system share sheet to the app you select. From that point your data is governed by that app's privacy policy.
+
+**Device backup.** If Android's own backup feature is enabled, the operating system may back up app data to your Google account. This is handled by Android; the developer has no access to it. You can disable it in your device settings.
+
+## File access
+
+The app does not request broad access to your files. When you back up or restore, the system file picker opens and only the file or folder **you select** is accessed. The permission for a folder chosen for automatic backup is stored on your device, and you can revoke it from Android settings at any time.
+
+## Permissions
+
+| Permission | Why it is needed |
 |---|---|
-| Post notifications | Show the reminders you set, when they are due |
-| Exact alarms | Fire reminders at the exact minute you chose |
-| Run at boot | Re-schedule your existing reminders after the device restarts |
+| Notifications (`POST_NOTIFICATIONS`) | To show the reminders you set. Without it the rest of the app still works; only reminder notifications are missing. |
+| Exact alarms (`SCHEDULE_EXACT_ALARM`) | So a reminder fires at the minute you chose. Without it notifications may be delayed. |
+| Run on boot (`RECEIVE_BOOT_COMPLETED`) | To re-schedule your reminders after the device restarts. |
 
-The app does not request camera, location, contacts, microphone or file access.
-
-## Third-party services
-
-Synapse uses no analytics, advertising, crash-reporting or cloud-sync services. The app makes no network connections.
+The app does not request internet access and makes no network connections.
 
 ## Children's privacy
 
-Because the app collects no data, it collects no data from children.
+Synapse is not directed at children and collects no personal information such as age, identity or location.
 
-## Your rights
+## Third-party services
 
-Since your data lives only on your device, you don't need to contact us to delete or export it. You can delete a note inside the app, and remove all data by uninstalling the app.
+The app contains no advertising network, analytics or crash-reporting service. It uses open-source libraries only, none of which collect data.
 
-## Changes
+## Deleting your data
 
-If this policy changes, the current version will be published at this address and the date above updated. If a data-transmitting feature such as cloud sync is added later, this policy will be updated before that feature ships.
+Because your notes live only on your device, uninstalling the app deletes them. You can also delete individual notes, empty the trash, or clear the app's data from your device settings. The developer holds no copy to delete.
+
+## Changes to this policy
+
+If this policy is updated, the "Last updated" date on this page changes. If a change materially affects how data is handled, you will be told inside the app.
 
 ## Contact
 
-Questions: emrecnugurlu@gmail.com
+Questions or requests: **emrecnugurlu@gmail.com**

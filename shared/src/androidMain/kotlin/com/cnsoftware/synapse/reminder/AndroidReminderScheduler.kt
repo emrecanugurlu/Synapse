@@ -16,7 +16,9 @@ class AndroidReminderScheduler(private val context: Context) : ReminderScheduler
             alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
         } else {
             // Kullanıcı exact alarm iznini vermemişse yaklaşık zamanlamaya düş.
-            alarmManager.set(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
+            // AllowWhileIdle: düz set() Doze modunda bir sonraki bakım
+            // penceresine kadar (saatlerce) ertelenebiliyor.
+            alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
         }
     }
 

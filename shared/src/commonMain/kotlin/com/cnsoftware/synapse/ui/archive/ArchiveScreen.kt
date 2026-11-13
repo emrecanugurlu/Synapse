@@ -3,7 +3,7 @@ package com.cnsoftware.synapse.ui.archive
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.SearchOff
@@ -30,7 +30,7 @@ import com.cnsoftware.synapse.ui.common.SelectionTopBar
 import com.cnsoftware.synapse.ui.common.UndoSnackbarEffect
 import org.koin.compose.viewmodel.koinViewModel
 import synapse.shared.generated.resources.Res
-import synapse.shared.generated.resources.action_back
+import synapse.shared.generated.resources.action_open_menu
 import synapse.shared.generated.resources.empty_archive_description
 import synapse.shared.generated.resources.empty_archive_title
 import synapse.shared.generated.resources.empty_search_archive_description
@@ -42,6 +42,7 @@ import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun ArchiveScreen(
+    onOpenDrawer: () -> Unit,
     onBack: () -> Unit,
     onNoteClick: (String) -> Unit,
     viewModel: ArchiveViewModel = koinViewModel(),
@@ -100,8 +101,8 @@ fun ArchiveScreen(
                         viewModel.onSearchQueryChange("")
                     },
                     navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.action_back))
+                        IconButton(onClick = onOpenDrawer) {
+                            Icon(Icons.Default.Menu, contentDescription = stringResource(Res.string.action_open_menu))
                         }
                     },
                 )

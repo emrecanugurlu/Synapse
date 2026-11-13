@@ -10,6 +10,7 @@ import com.cnsoftware.synapse.domain.NoteRepository
 import com.cnsoftware.synapse.domain.SyncStatus
 import com.cnsoftware.synapse.prefs.AppSettings
 import com.cnsoftware.synapse.reminder.ReminderScheduler
+import com.cnsoftware.synapse.reminder.reminderMessage
 import com.cnsoftware.synapse.share.ShareService
 import com.cnsoftware.synapse.share.formatNoteForShare
 import com.cnsoftware.synapse.util.currentTimeMillis
@@ -57,15 +58,29 @@ class NoteEditorViewModel(
     private val settings: AppSettings,
     /** Yeni not doğrudan liste modunda açılsın mı (ana ekrandaki "Yeni liste" kısayolu). */
     startAsChecklist: Boolean = false,
+    /**
+     * Dışarıdan gelen metinle açılan yeni not (başka uygulamadan paylaşma).
+     * Var olan bir not açılırken yok sayılır.
+     */
+    initialTitle: String = "",
+    initialContent: String = "",
+    /**
+     * Yeni notun alacağı id. Gezinme durumu bu id'yi sakladığı için, süreç
+     * öldürülüp geri yüklendiğinde editör aynı nota bağlanır; rastgele bir id
+     * üretilseydi daha önce kaydedilmiş notun yanına ikinci bir kopya yazılırdı.
+     */
+    private val newNoteId: String? = null,
 ) : ViewModel() {
 
     private val firstChecklistItemId = generateId()
 
     private val _uiState = MutableStateFlow(
         NoteEditorUiState(
-            id = noteId ?: generateId(),
+            id = noteId ?: newNoteId ?: generateId(),
             isNew = noteId == null,
             isLoading = noteId != null,
+            title = if (noteId == null) initialTitle else "",
+            content = if (noteId == null) initialContent else "",
             // Yeni not liste olarak açılıyorsa boş bir madde ile başla.
             isChecklist = noteId == null && startAsChecklist,
             checklistItems = if (noteId == null && startAsChecklist) {
@@ -116,34 +131,22 @@ class NoteEditorViewModel(
             viewModelScope.launch {
                 val note = repository.getNoteById(noteId)
                 if (note != null) {
-                    _lastSavedAt.value = note.updatedAt
-                    createdAt = note.createdAt
-                    isPinned = note.isPinned
-                    isArchivedFlag = note.isArchived
-                    isDeletedFlag = note.isDeleted
-                    remoteId = note.remoteId
-                    syncStatus = note.syncStatus
-                    _uiState.update {
-                        it.copy(
-                            id = note.id,
-                            title = note.title,
-                            content = note.content,
-                            color = note.color,
-                            isChecklist = note.isChecklist,
-                            checklistItems = note.checklistItems,
-                            labels = note.labels,
-                            reminderAt = note.reminderAt,
-                            isArchived = note.isArchived,
-                            isNew = false,
-                            isLoading = false,
-                        )
-                    }
+                    applyLoaded(note)
                 } else {
                     _uiState.update { it.copy(isLoading = false) }
+                    // Yüklenen hâli "kaydedilmiş" say: kullanıcı dokunmadan
+                    // "kaydedilmemiş değişiklik var" uyarısı çıkmasın.
+                    _savedSnapshot.value = _uiState.value
                 }
-                // Yüklenen hâli "kaydedilmiş" say: kullanıcı dokunmadan
-                // "kaydedilmemiş değişiklik var" uyarısı çıkmasın.
-                _savedSnapshot.value = _uiState.value
+            }
+        } else if (newNoteId != null) {
+            // Yalnızca süreç ölümünden sonraki geri yüklemede bir şey bulur:
+            // bu id ile daha önce kaydedilmiş not varsa kaldığı yerden devam et.
+            val initial = _uiState.value
+            viewModelScope.launch {
+                val note = repository.getNoteById(newNoteId) ?: return@launch
+                // Kullanıcı bu arada yazmaya başladıysa onun yazdığı kalsın.
+                if (_uiState.value == initial) applyLoaded(note)
             }
         }
 
@@ -154,6 +157,66 @@ class NoteEditorViewModel(
             .debounce(600)
             .onEach { state -> if (settings.autoSaveEnabled.value) persist(state) }
             .launchIn(viewModelScope)
+    }
+
+    /** Veritabanındaki notu editör durumuna ve korunan bayraklara yazar. */
+    private fun applyLoaded(note: Note) {
+        _lastSavedAt.value = note.updatedAt
+        createdAt = note.createdAt
+        isPinned = note.isPinned
+        isArchivedFlag = note.isArchived
+        isDeletedFlag = note.isDeleted
+        remoteId = note.remoteId
+        syncStatus = note.syncStatus
+        _uiState.update {
+            it.copy(
+                id = note.id,
+                title = note.title,
+                content = note.content,
+                color = note.color,
+                isChecklist = note.isChecklist,
+                checklistItems = note.checklistItems,
+                labels = note.labels,
+                reminderAt = note.reminderAt,
+                isArchived = note.isArchived,
+                isNew = false,
+                isLoading = false,
+            )
+        }
+        // Yüklenen hâli "kaydedilmiş" say: kullanıcı dokunmadan
+        // "kaydedilmemiş değişiklik var" uyarısı çıkmasın.
+        _savedSnapshot.value = _uiState.value
+    }
+
+    /**
+     * Editör ekranı her açıldığında çağrılır.
+     *
+     * ViewModel not id'siyle Activity ömrü boyunca önbellekte kalıyor; aynı not
+     * ikinci kez açıldığında `init` yeniden çalışmıyor. Arada listeden yapılan
+     * sabitleme, arşivleme, çöpe atma, etiketleme veya yedekten geri yükleme
+     * burada yeniden okunmazsa, sonraki kayıt bunların hepsini eski değerlerle ezer.
+     *
+     * Kaydedilmemiş değişiklik varsa dokunulmaz: bu yalnızca ekran döndürme gibi
+     * editörden hiç çıkılmayan durumlarda olur ve yazılan metin korunmalıdır.
+     */
+    fun onOpened() {
+        val state = _uiState.value
+        if (state.isLoading || state.isNew) return
+        if (state != _savedSnapshot.value) return
+        viewModelScope.launch {
+            val note = repository.getNoteById(state.id) ?: return@launch
+            // Okuma sürerken yazılmaya başlandıysa kullanıcının yazdığı kalsın.
+            if (_uiState.value == _savedSnapshot.value) applyLoaded(note)
+        }
+    }
+
+    /**
+     * Kaydedilmemiş değişiklikleri atar (otomatik kaydetme kapalıyken "Vazgeç").
+     * ViewModel önbellekte kaldığı için, bu yapılmazsa atılan metin not bir
+     * sonraki açılışta geri gelir.
+     */
+    fun discardChanges() {
+        _savedSnapshot.value?.let { saved -> _uiState.value = saved }
     }
 
     fun onTitleChange(title: String) {
@@ -296,6 +359,28 @@ class NoteEditorViewModel(
         }
     }
 
+    /** Tamamlanmış öğeleri listeden siler; bekleyenler sırasını korur. */
+    fun clearCompletedChecklistItems() {
+        _uiState.update { state ->
+            state.copy(checklistItems = state.checklistItems.filterNot { it.isChecked }.reindexed())
+        }
+    }
+
+    /**
+     * Tümünü işaretler; zaten hepsi işaretliyse işaretleri kaldırır.
+     * Tek bir düğmenin iki yönlü çalışması için.
+     */
+    fun toggleAllChecklistItems() {
+        _uiState.update { state ->
+            if (state.checklistItems.isEmpty()) return@update state
+            val allChecked = state.checklistItems.all { it.isChecked }
+            val updated = state.checklistItems.map { it.copy(isChecked = !allChecked) }
+            // İşaretlenenler listenin sonuna gider; hepsi aynı duruma geçtiği
+            // için mevcut sıra korunuyor, yeniden düzenlemeye gerek yok.
+            state.copy(checklistItems = updated.reindexed())
+        }
+    }
+
     fun toggleLabel(label: Label) {
         _uiState.update { state ->
             val labels = if (state.labels.any { it.id == label.id }) {
@@ -319,7 +404,7 @@ class NoteEditorViewModel(
         reminderScheduler.schedule(
             noteId = state.id,
             title = state.title,
-            message = reminderMessage(state),
+            message = reminderMessage(state.isChecklist, state.content, state.checklistItems),
             triggerAtMillis = triggerAtMillis,
         )
     }
@@ -328,13 +413,6 @@ class NoteEditorViewModel(
         reminderScheduler.cancel(_uiState.value.id)
         _uiState.update { it.copy(reminderAt = null) }
     }
-
-    private fun reminderMessage(state: NoteEditorUiState): String =
-        if (state.isChecklist) {
-            state.checklistItems.firstOrNull { it.text.isNotBlank() }?.text.orEmpty()
-        } else {
-            state.content
-        }.take(100)
 
     fun createAndAttachLabel(name: String) {
         val trimmed = name.trim()
@@ -356,8 +434,15 @@ class NoteEditorViewModel(
 
     fun delete() {
         if (_uiState.value.isNew) return
-        reminderScheduler.cancel(_uiState.value.id)
-        viewModelScope.launch { repository.moveToTrash(_uiState.value.id) }
+        val id = _uiState.value.id
+        reminderScheduler.cancel(id)
+        // Bayrak da güncellenmeli: bekleyen bir otomatik kayıt notu
+        // isDeleted = false ile yeniden yazıp çöpten geri getirirdi.
+        isDeletedFlag = true
+        // Silinen nota ait kaydedilmemiş son değişiklikler atılır; böylece
+        // bekleyen otomatik kayıt da yazacak bir şey bulamaz.
+        discardChanges()
+        viewModelScope.launch { repository.moveToTrash(id) }
     }
 
     /** Notu arşive alır ya da arşivden çıkarır; ekrandan çıkılmadan da kaydedilir. */
@@ -371,6 +456,10 @@ class NoteEditorViewModel(
     private suspend fun persist(state: NoteEditorUiState) {
         if (state.isLoading) return
         if (!state.hasContent()) return
+        // Değişiklik yoksa yazma: aksi halde notu yalnızca açıp kapatmak
+        // "son düzenleme" zamanını değiştirip notu listenin başına taşıyor,
+        // çöpteki notta ise kalıcı silme süresini sıfırlıyordu.
+        if (state == _savedSnapshot.value) return
 
         val savedAt = currentTimeMillis()
         repository.upsertNote(

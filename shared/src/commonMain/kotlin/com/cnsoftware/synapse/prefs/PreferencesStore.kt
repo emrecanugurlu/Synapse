@@ -19,5 +19,8 @@ interface PreferencesStore {
         const val KEY_TRASH_RETENTION_DAYS = "trash_retention_days"
         const val KEY_AUTOSAVE = "autosave_enabled"
         const val KEY_LABEL_FILTERS = "label_filters_visible"
+        const val KEY_AUTO_BACKUP = "auto_backup_frequency"
+        const val KEY_BACKUP_FOLDER = "auto_backup_folder_uri"
+        const val KEY_LAST_BACKUP_AT = "auto_backup_last_at"
     }
 }

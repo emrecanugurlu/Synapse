@@ -29,6 +29,21 @@ interface NoteRepository {
     /** Toplu etiketleme: verilen notlara etiketi ekler ([assigned] true) veya kaldırır. */
     suspend fun setLabelForNotes(noteIds: List<String>, labelId: String, assigned: Boolean)
 
+    /** Yedekleme için: arşiv ve çöp kutusu dahil tüm notlar, tek seferde. */
+    suspend fun getAllNotes(): List<Note>
+
+    /** Yedekleme için: tüm etiketler, tek seferde. */
+    suspend fun getAllLabels(): List<Label>
+
+    /**
+     * Yedeği mevcut veriyle birleştirir.
+     *
+     * Aynı id'ye sahip kayıtlar yedektekiyle değiştirilir, olmayanlar eklenir;
+     * yedekte bulunmayan mevcut kayıtlara dokunulmaz. Böylece yanlış dosya
+     * seçmek veri kaybına yol açmaz.
+     */
+    suspend fun mergeBackup(notes: List<Note>, labels: List<Label>)
+
     /** Çöp kutusundaki tüm notları kalıcı olarak siler. */
     suspend fun emptyTrash()
 

@@ -29,6 +29,10 @@ CREATE INDEX checklistItem_noteId ON ChecklistItem(noteId);
 selectActive:
 SELECT * FROM Note WHERE isDeleted = 0 AND isArchived = 0 ORDER BY isPinned DESC, updatedAt DESC, id;
 
+-- Yedekleme icin: durumdan bagimsiz TUM notlar (arsiv ve cop kutusu dahil).
+selectAllNotes:
+SELECT * FROM Note ORDER BY createdAt, id;
+
 selectArchived:
 SELECT * FROM Note WHERE isDeleted = 0 AND isArchived = 1 ORDER BY updatedAt DESC, id;
 
@@ -38,20 +42,8 @@ SELECT * FROM Note WHERE isDeleted = 1 ORDER BY updatedAt DESC, id;
 selectById:
 SELECT * FROM Note WHERE id = ?;
 
-searchActive:
-SELECT * FROM Note
-WHERE isDeleted = 0 AND isArchived = 0 AND (title LIKE ('%' || :query || '%') OR content LIKE ('%' || :query || '%'))
-ORDER BY isPinned DESC, updatedAt DESC, id;
-
-searchArchived:
-SELECT * FROM Note
-WHERE isDeleted = 0 AND isArchived = 1 AND (title LIKE ('%' || :query || '%') OR content LIKE ('%' || :query || '%'))
-ORDER BY updatedAt DESC, id;
-
-searchTrashed:
-SELECT * FROM Note
-WHERE isDeleted = 1 AND (title LIKE ('%' || :query || '%') OR content LIKE ('%' || :query || '%'))
-ORDER BY updatedAt DESC, id;
+-- Arama burada degil, NoteRepositoryImpl'de bellekte yapiliyor: SQLite LIKE
+-- Turkce harflerde buyuk/kucuk harf duyarli ve liste maddelerini kapsamiyordu.
 
 insertOrReplaceNote:
 INSERT OR REPLACE INTO Note(id, title, content, color, isChecklist, isPinned, isArchived, isDeleted, createdAt, updatedAt, remoteId, syncStatus, reminderAt)
@@ -102,3 +94,8 @@ DELETE FROM ChecklistItem WHERE id = ?;
 
 deleteItemsForNote:
 DELETE FROM ChecklistItem WHERE noteId = ?;
+
+-- Kalici silinen notlardan geriye kalan maddeleri temizler. Suruculerde foreign
+-- key denetimi acik olmadigi icin ON DELETE CASCADE calismiyor.
+purgeOrphanChecklistItems:
+DELETE FROM ChecklistItem WHERE noteId NOT IN (SELECT id FROM Note);

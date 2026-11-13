@@ -17,6 +17,9 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.splashscreen)
     implementation(libs.androidx.lifecycle.runtimeCompose)
+    // suspendCancellableCoroutine: shared modül coroutines'i api olarak
+    // dışa açmıyor, bu yüzden burada da gerekiyor.
+    implementation(libs.kotlinx.coroutines.core)
 
     implementation(libs.koin.compose)
     implementation(libs.koin.composeViewmodel)
@@ -43,8 +46,8 @@ android {
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         // Her Play yüklemesinde artırılmalı; aynı versionCode ikinci kez kabul edilmez.
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 5
+        versionName = "1.0.4"
     }
     packaging {
         resources {

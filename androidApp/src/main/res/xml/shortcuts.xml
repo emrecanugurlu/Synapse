@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Statik launcher kısayolları. targetClass tam nitelikli olmalı;
+  targetPackage applicationId ile aynı.
+-->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <shortcut
+        android:shortcutId="new_note"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_note"
+        android:shortcutShortLabel="@string/shortcut_new_note_short"
+        android:shortcutLongLabel="@string/shortcut_new_note_long">
+        <intent
+            android:action="com.cnsoftware.synapse.NEW_NOTE"
+            android:targetPackage="com.cnsoftware.synapse"
+            android:targetClass="com.cnsoftware.synapse.MainActivity" />
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="new_checklist"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_checklist"
+        android:shortcutShortLabel="@string/shortcut_new_checklist_short"
+        android:shortcutLongLabel="@string/shortcut_new_checklist_long">
+        <intent
+            android:action="com.cnsoftware.synapse.NEW_CHECKLIST"
+            android:targetPackage="com.cnsoftware.synapse"
+            android:targetClass="com.cnsoftware.synapse.MainActivity" />
+    </shortcut>
+
+</shortcuts>

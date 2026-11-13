@@ -5,7 +5,6 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -31,6 +30,9 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.CheckBoxOutlineBlank
+import androidx.compose.material.icons.filled.DoneAll
+import androidx.compose.material.icons.filled.PlaylistRemove
 import androidx.compose.material.icons.filled.DragIndicator
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Label
@@ -105,6 +107,7 @@ import com.cnsoftware.synapse.ui.common.RoundedTextField
 import com.cnsoftware.synapse.ui.theme.Spacing
 import com.cnsoftware.synapse.ui.theme.toContainerColor
 import com.cnsoftware.synapse.ui.theme.imageVector
+import com.cnsoftware.synapse.util.currentTimeMillis
 import com.cnsoftware.synapse.util.formatDateTime
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -121,6 +124,11 @@ import synapse.shared.generated.resources.action_ok
 import synapse.shared.generated.resources.checklist_add_item
 import synapse.shared.generated.resources.checklist_completed_count
 import synapse.shared.generated.resources.checklist_drag_handle
+import synapse.shared.generated.resources.checklist_check_all
+import synapse.shared.generated.resources.checklist_clear_completed
+import synapse.shared.generated.resources.checklist_uncheck_all
+import synapse.shared.generated.resources.stats_checklist
+import synapse.shared.generated.resources.stats_text
 import synapse.shared.generated.resources.checklist_item_hint
 import synapse.shared.generated.resources.checklist_remove_item
 import synapse.shared.generated.resources.color_dialog_title
@@ -148,12 +156,28 @@ fun NoteEditorScreen(
     // Var olan bir not için noteId; yeni not için her navigasyonda benzersiz bir anahtar.
     // Bu olmadan Koin/ViewModelStore aynı NoteEditorViewModel sınıfını -- farklı notlar
     // arasında geçişte bile -- tek örnek olarak önbelleğe alıp eski notun state'ini geri döndürebilir.
-    editorKey: String = noteId ?: "new",
+    // Yeni notta bu anahtar aynı zamanda notun id'si olur (bkz. EditorArgs.newNoteId).
+    editorKey: String,
     startAsChecklist: Boolean = false,
+    /** Paylaş menüsünden gelen metinle açılan yeni not için ön dolgu. */
+    initialTitle: String = "",
+    initialContent: String = "",
     viewModel: NoteEditorViewModel = koinViewModel(key = editorKey) {
-        parametersOf(noteId, startAsChecklist)
+        parametersOf(
+            EditorArgs(
+                noteId = noteId,
+                startAsChecklist = startAsChecklist,
+                initialTitle = initialTitle,
+                initialContent = initialContent,
+                newNoteId = editorKey.takeIf { noteId == null },
+            ),
+        )
     },
 ) {
+    // ViewModel önbellekten gelmiş olabilir; ekran her açıldığında notun
+    // güncel hâlini veritabanından tazele.
+    LaunchedEffect(viewModel) { viewModel.onOpened() }
+
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val allLabels by viewModel.allLabels.collectAsStateWithLifecycle()
     val pendingFocusItemId by viewModel.pendingFocusItemId.collectAsStateWithLifecycle()
@@ -317,9 +341,20 @@ fun NoteEditorScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                     )
                 },
-                textStyle = MaterialTheme.typography.headlineSmall,
+                textStyle = MaterialTheme.typography.headlineSmallEmphasized,
                 colors = transparentTextFieldColors(),
                 modifier = Modifier.fillMaxWidth(),
+            )
+
+            // Hatırlatıcı ve etiketler nota ait niteliklerdir; başlığın hemen
+            // altında duruyorlar. Önceden içeriğin ALTINDAydılar, yani uzun bir
+            // notta görmek için sonuna kadar kaydırmak gerekiyordu.
+            NoteAttributes(
+                reminderAt = state.reminderAt,
+                labels = state.labels,
+                onReminderClick = { showReminderDialog = true },
+                onReminderRemove = viewModel::clearReminder,
+                onLabelRemove = viewModel::toggleLabel,
             )
 
             if (state.isChecklist) {
@@ -352,60 +387,6 @@ fun NoteEditorScreen(
                 )
             }
 
-            state.reminderAt?.let { reminderAt ->
-                Spacer(modifier = Modifier.height(Spacing.md))
-                AssistChip(
-                    onClick = { showReminderDialog = true },
-                    label = { Text(formatDateTime(reminderAt)) },
-                    leadingIcon = {
-                        Icon(Icons.Default.Alarm, contentDescription = null, modifier = Modifier.size(16.dp))
-                    },
-                    trailingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = stringResource(Res.string.editor_reminder_remove),
-                            modifier = Modifier.size(14.dp).clickable { viewModel.clearReminder() },
-                        )
-                    },
-                )
-            }
-
-            if (state.labels.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(Spacing.sm))
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
-                        .padding(horizontal = Spacing.sm),
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                ) {
-                    state.labels.forEach { label ->
-                        AssistChip(
-                            onClick = { viewModel.toggleLabel(label) },
-                            label = { Text(label.name) },
-                            // Etiketin kendi ikonu ve rengi çipte de geçerli.
-                            leadingIcon = {
-                                Icon(
-                                    label.icon.imageVector,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp),
-                                )
-                            },
-                            trailingIcon = {
-                                Icon(Icons.Default.Close, contentDescription = stringResource(Res.string.label_remove), modifier = Modifier.size(14.dp))
-                            },
-                            colors = AssistChipDefaults.assistChipColors(
-                                containerColor = if (label.color == NoteColor.DEFAULT) {
-                                    Color.Transparent
-                                } else {
-                                    label.color.toContainerColor()
-                                },
-                            ),
-                        )
-                    }
-                }
-            }
-
             Spacer(modifier = Modifier.height(Spacing.xxl))
         }
     }
@@ -413,6 +394,7 @@ fun NoteEditorScreen(
     if (showActionsSheet) {
         NoteActionsSheet(
             canDelete = !state.isNew,
+            state = state,
             onShare = {
                 showActionsSheet = false
                 viewModel.share()
@@ -421,6 +403,14 @@ fun NoteEditorScreen(
                 showActionsSheet = false
                 viewModel.delete()
                 onBack()
+            },
+            onToggleAll = {
+                showActionsSheet = false
+                viewModel.toggleAllChecklistItems()
+            },
+            onClearCompleted = {
+                showActionsSheet = false
+                viewModel.clearCompletedChecklistItems()
             },
             onDismiss = { showActionsSheet = false },
         )
@@ -443,6 +433,7 @@ fun NoteEditorScreen(
             dismissButton = {
                 TextButton(onClick = {
                     showUnsavedDialog = false
+                    viewModel.discardChanges()
                     onBack()
                 }) {
                     Text(stringResource(Res.string.action_discard))
@@ -853,11 +844,37 @@ private fun transparentTextFieldColors() = TextFieldDefaults.colors(
 @Composable
 private fun NoteActionsSheet(
     canDelete: Boolean,
+    state: NoteEditorUiState,
     onShare: () -> Unit,
     onDelete: () -> Unit,
+    onToggleAll: () -> Unit,
+    onClearCompleted: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     ActionsBottomSheet(onDismiss = onDismiss) {
+        // Liste notlarına özgü toplu işlemler; metin notunda anlamı yok.
+        if (state.isChecklist && state.checklistItems.isNotEmpty()) {
+            val allChecked = state.checklistItems.all { it.isChecked }
+            SheetActionRow(
+                icon = if (allChecked) Icons.Default.CheckBoxOutlineBlank else Icons.Default.DoneAll,
+                label = stringResource(
+                    if (allChecked) {
+                        Res.string.checklist_uncheck_all
+                    } else {
+                        Res.string.checklist_check_all
+                    },
+                ),
+                onClick = onToggleAll,
+            )
+            if (state.checklistItems.any { it.isChecked }) {
+                SheetActionRow(
+                    icon = Icons.Default.PlaylistRemove,
+                    label = stringResource(Res.string.checklist_clear_completed),
+                    onClick = onClearCompleted,
+                )
+            }
+        }
+
         SheetActionRow(
             icon = Icons.Default.Share,
             label = stringResource(Res.string.editor_share),
@@ -867,9 +884,143 @@ private fun NoteActionsSheet(
             SheetActionRow(
                 icon = Icons.Default.Delete,
                 label = stringResource(Res.string.action_delete),
+                destructive = true,
                 onClick = onDelete,
             )
         }
+
+        NoteStats(state)
+    }
+}
+
+/**
+ * Notun büyüklüğü: liste notunda öğe sayısı, metin notunda kelime ve karakter.
+ * Alt menünün en altında, ayraçla ayrılmış bilgi satırı.
+ */
+@Composable
+private fun NoteStats(state: NoteEditorUiState) {
+    val text = if (state.isChecklist) {
+        val total = state.checklistItems.size
+        val done = state.checklistItems.count { it.isChecked }
+        stringResource(Res.string.stats_checklist, done, total)
+    } else {
+        // Ardışık boşluklar tek ayraç sayılsın diye filtreleniyor.
+        val words = state.content.split(' ', '\n', '\t').count { it.isNotBlank() }
+        stringResource(Res.string.stats_text, words, state.content.length)
+    }
+
+    HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.sm))
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(horizontal = Spacing.xl, vertical = Spacing.xs),
+    )
+}
+
+/**
+ * Nota ait nitelikler: hatırlatıcı ve etiketler.
+ *
+ * Sarmalayan bir düzen (FlowRow) kullanılıyor; önceden etiketler yatay
+ * kaydırmalı tek satırdaydı ve ikiden fazla etikette geri kalanlar ekran
+ * dışında kalıyordu.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun NoteAttributes(
+    reminderAt: Long?,
+    labels: List<com.cnsoftware.synapse.domain.Label>,
+    onReminderClick: () -> Unit,
+    onReminderRemove: () -> Unit,
+    onLabelRemove: (com.cnsoftware.synapse.domain.Label) -> Unit,
+) {
+    if (reminderAt == null && labels.isEmpty()) return
+
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = Spacing.sm, bottom = Spacing.md),
+    ) {
+        reminderAt?.let { at ->
+            // Zamanı geçmiş hatırlatıcı uyarı renginde: kullanıcı kaçırdığını
+            // tarihi okumadan anlıyor.
+            val overdue = at < currentTimeMillis()
+            AssistChip(
+                onClick = onReminderClick,
+                label = { Text(formatDateTime(at)) },
+                leadingIcon = {
+                    Icon(Icons.Default.Alarm, contentDescription = null, modifier = Modifier.size(16.dp))
+                },
+                trailingIcon = {
+                    ChipRemoveButton(
+                        contentDescription = stringResource(Res.string.editor_reminder_remove),
+                        onClick = onReminderRemove,
+                    )
+                },
+                colors = if (overdue) {
+                    AssistChipDefaults.assistChipColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                        labelColor = MaterialTheme.colorScheme.onErrorContainer,
+                        leadingIconContentColor = MaterialTheme.colorScheme.onErrorContainer,
+                        trailingIconContentColor = MaterialTheme.colorScheme.onErrorContainer,
+                    )
+                } else {
+                    AssistChipDefaults.assistChipColors()
+                },
+            )
+        }
+
+        labels.forEach { label ->
+            AssistChip(
+                onClick = { onLabelRemove(label) },
+                label = { Text(label.name) },
+                // Etiketin kendi ikonu ve rengi çipte de geçerli.
+                leadingIcon = {
+                    Icon(
+                        label.icon.imageVector,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                    )
+                },
+                trailingIcon = {
+                    ChipRemoveButton(
+                        contentDescription = stringResource(Res.string.label_remove),
+                        onClick = { onLabelRemove(label) },
+                    )
+                },
+                colors = AssistChipDefaults.assistChipColors(
+                    containerColor = if (label.color == NoteColor.DEFAULT) {
+                        Color.Transparent
+                    } else {
+                        label.color.toContainerColor()
+                    },
+                ),
+            )
+        }
+    }
+}
+
+/**
+ * Çip içindeki kaldırma düğmesi.
+ * Çıplak `Icon` + `clickable` 14dp'lik bir dokunma hedefi bırakıyordu;
+ * ikon aynı boyutta kalıyor ama tıklanabilir alan büyütülüyor.
+ */
+@Composable
+private fun ChipRemoveButton(contentDescription: String, onClick: () -> Unit) {
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .size(24.dp)
+            .clip(CircleShape)
+            .clickable(onClick = onClick),
+    ) {
+        Icon(
+            imageVector = Icons.Default.Close,
+            contentDescription = contentDescription,
+            modifier = Modifier.size(14.dp),
+        )
     }
 }
 

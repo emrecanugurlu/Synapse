@@ -61,28 +61,25 @@ class NoteRepositoryImpl(
             .flowOn(ioDispatcher)
 
     override fun searchActiveNotes(query: String): Flow<List<Note>> =
-        queries.searchActive(query)
-            .asFlow()
-            .mapToList(ioDispatcher)
-            .map { entities -> entities.toDomainWithChecklistItems() }
-            .distinctUntilChanged()
-            .flowOn(ioDispatcher)
+        observeActiveNotes().filteredBy(query)
 
     override fun searchArchivedNotes(query: String): Flow<List<Note>> =
-        queries.searchArchived(query)
-            .asFlow()
-            .mapToList(ioDispatcher)
-            .map { entities -> entities.toDomainWithChecklistItems() }
-            .distinctUntilChanged()
-            .flowOn(ioDispatcher)
+        observeArchivedNotes().filteredBy(query)
 
     override fun searchTrashedNotes(query: String): Flow<List<Note>> =
-        queries.searchTrashed(query)
-            .asFlow()
-            .mapToList(ioDispatcher)
-            .map { entities -> entities.toDomainWithChecklistItems() }
+        observeTrashedNotes().filteredBy(query)
+
+    /**
+     * Arama bellekte yapılıyor (bkz. [foldForSearch]): liste ekranı zaten tüm
+     * notları maddeleriyle yüklüyor, üzerine ek bir sorgu maliyeti gelmiyor.
+     */
+    private fun Flow<List<Note>>.filteredBy(query: String): Flow<List<Note>> {
+        val folded = query.trim().foldForSearch()
+        if (folded.isEmpty()) return this
+        return map { notes -> notes.filter { it.matchesSearch(folded) } }
             .distinctUntilChanged()
             .flowOn(ioDispatcher)
+    }
 
     override fun observeActiveNotesByLabel(labelId: String): Flow<List<Note>> =
         labelQueries.selectActiveByLabel(labelId)
@@ -175,6 +172,7 @@ class NoteRepositoryImpl(
         queries.transaction {
             queries.emptyTrash()
             labelQueries.purgeOrphanCrossRefs()
+            queries.purgeOrphanChecklistItems()
         }
     }
 
@@ -241,6 +239,8 @@ class NoteRepositoryImpl(
     override suspend fun deletePermanently(id: String) = withContext(ioDispatcher) {
         queries.transaction {
             labelQueries.deleteCrossRefsForNote(id)
+            // Foreign key denetimi açık değil; maddeler elle silinmezse kalıyor.
+            queries.deleteItemsForNote(id)
             queries.deleteNotePermanently(id)
         }
     }
@@ -249,6 +249,80 @@ class NoteRepositoryImpl(
         queries.transaction {
             queries.purgeTrashedBefore(timestampMillis)
             labelQueries.purgeOrphanCrossRefs()
+            queries.purgeOrphanChecklistItems()
+        }
+    }
+
+    override suspend fun getAllNotes(): List<Note> = withContext(ioDispatcher) {
+        queries.selectAllNotes().executeAsList().toDomainWithChecklistItems()
+    }
+
+    override suspend fun getAllLabels(): List<Label> = withContext(ioDispatcher) {
+        labelQueries.selectAllLabels().executeAsList().map { it.toDomainLabel() }
+    }
+
+    override suspend fun mergeBackup(
+        notes: List<Note>,
+        labels: List<Label>,
+    ) = withContext(ioDispatcher) {
+        // Tek transaction: yarıda kesilirse kısmi bir durum kalmasın.
+        queries.transaction {
+            // Etiket adı UNIQUE. Yedekteki etiketle aynı adda ama farklı id'li
+            // bir etiket zaten varsa yedekteki eklenemez; notlar yedekteki id'ye
+            // bağlanırsa var olmayan bir etikete işaret eder ve etiketsiz görünür.
+            // Bu yüzden yedekteki id, aynı adlı mevcut etiketin id'sine çevriliyor.
+            val idByName = labelQueries.selectAllLabels().executeAsList()
+                .associateTo(mutableMapOf()) { it.name to it.id }
+            val resolvedLabelIds = mutableMapOf<String, String>()
+            labels.forEach { label ->
+                val existingId = idByName[label.name]
+                if (existingId != null && existingId != label.id) {
+                    resolvedLabelIds[label.id] = existingId
+                } else {
+                    // Aynı id zaten varsa "INSERT OR IGNORE" mevcut kaydı korur.
+                    labelQueries.insertLabel(
+                        id = label.id,
+                        name = label.name,
+                        color = label.color.name,
+                        icon = label.icon.name,
+                    )
+                    idByName[label.name] = label.id
+                }
+            }
+            notes.forEach { note ->
+                queries.insertOrReplaceNote(
+                    id = note.id,
+                    title = note.title,
+                    content = note.content,
+                    color = note.color.name,
+                    isChecklist = note.isChecklist,
+                    isPinned = note.isPinned,
+                    isArchived = note.isArchived,
+                    isDeleted = note.isDeleted,
+                    createdAt = note.createdAt,
+                    updatedAt = note.updatedAt,
+                    remoteId = note.remoteId,
+                    syncStatus = note.syncStatus.name,
+                    reminderAt = note.reminderAt,
+                )
+                queries.deleteItemsForNote(note.id)
+                note.checklistItems.forEach { item ->
+                    queries.insertOrReplaceItem(
+                        id = item.id,
+                        noteId = note.id,
+                        text = item.text,
+                        isChecked = item.isChecked,
+                        position = item.position.toLong(),
+                    )
+                }
+                labelQueries.deleteCrossRefsForNote(note.id)
+                note.labels.forEach { label ->
+                    labelQueries.insertCrossRef(
+                        noteId = note.id,
+                        labelId = resolvedLabelIds[label.id] ?: label.id,
+                    )
+                }
+            }
         }
     }
 

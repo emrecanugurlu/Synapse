@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.androidMultiplatformLibrary)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.sqldelight)
 }
 
@@ -56,6 +57,10 @@ kotlin {
             implementation(libs.compose.uiTooling)
             implementation(libs.sqldelight.androidDriver)
             implementation(libs.androidx.core.ktx)
+            // Periyodik otomatik yedek: WorkManager.
+            implementation(libs.androidx.work.runtime)
+            // SAF klasöründeki dosyaları listelemek/silmek için.
+            implementation(libs.androidx.documentfile)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
@@ -74,6 +79,7 @@ kotlin {
             implementation(libs.koin.compose)
             implementation(libs.koin.composeViewmodel)
             implementation(libs.kotlinx.coroutines.core)
+            implementation(libs.kotlinx.serialization.json)
             implementation(libs.compose.materialIconsCore)
             implementation(libs.compose.materialIconsExtended)
         }

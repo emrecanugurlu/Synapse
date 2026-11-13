@@ -10,6 +10,7 @@ import com.cnsoftware.synapse.share.toShareText
 import com.cnsoftware.synapse.domain.SyncStatus
 import com.cnsoftware.synapse.prefs.AppSettings
 import com.cnsoftware.synapse.prefs.PreferencesStore
+import com.cnsoftware.synapse.reminder.ReminderCoordinator
 import com.cnsoftware.synapse.ui.common.UndoEvent
 import com.cnsoftware.synapse.util.currentTimeMillis
 import com.cnsoftware.synapse.util.generateId
@@ -41,6 +42,7 @@ class NoteListViewModel(
     private val shareService: ShareService,
     private val preferences: PreferencesStore,
     private val settings: AppSettings,
+    private val reminders: ReminderCoordinator,
 ) : ViewModel() {
 
     init {
@@ -96,9 +98,18 @@ class NoteListViewModel(
         preferences.putString(PreferencesStore.KEY_SORT_OPTION, option.name)
     }
 
-    /** Aynı etikete tekrar dokunmak filtreyi kaldırır. */
+    /** Aynı etikete tekrar dokunmak filtreyi kaldırır (çip davranışı). */
     fun onLabelFilterChange(labelId: String?) {
         _selectedLabelId.value = if (_selectedLabelId.value == labelId) null else labelId
+    }
+
+    /**
+     * Filtreyi doğrudan ayarlar (drawer'dan gezinme).
+     * Burada "aç/kapa" mantığı yok: kullanıcı çekmeceden bir etiket seçtiğinde
+     * beklentisi o etikete gitmek, seçiliyse filtreyi kaldırmak değil.
+     */
+    fun setLabelFilter(labelId: String?) {
+        _selectedLabelId.value = labelId
     }
 
     private val _undoEvent = MutableStateFlow<UndoEvent?>(null)
@@ -215,8 +226,11 @@ class NoteListViewModel(
         clearSelection()
         viewModelScope.launch {
             ids.forEach { repository.moveToTrash(it) }
+            // Çöpteki not için bildirim çalmasın; geri alınırsa yeniden kurulur.
+            reminders.cancel(ids)
             _undoEvent.value = UndoEvent(currentTimeMillis(), Res.string.undo_trashed, ids.size) {
                 ids.forEach { repository.restoreFromTrash(it) }
+                reminders.reschedule(ids)
             }
         }
     }
@@ -272,8 +286,10 @@ class NoteListViewModel(
     fun moveToTrash(note: Note) {
         viewModelScope.launch {
             repository.moveToTrash(note.id)
+            reminders.cancel(listOf(note.id))
             _undoEvent.value = UndoEvent(currentTimeMillis(), Res.string.undo_trashed, 1) {
                 repository.restoreFromTrash(note.id)
+                reminders.reschedule(listOf(note.id))
             }
         }
     }

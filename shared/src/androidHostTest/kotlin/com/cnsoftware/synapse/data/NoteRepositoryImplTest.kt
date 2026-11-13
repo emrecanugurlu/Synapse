@@ -4,6 +4,7 @@ import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import com.cnsoftware.synapse.db.NoteDatabase
 import com.cnsoftware.synapse.domain.ChecklistItem
+import com.cnsoftware.synapse.domain.Label
 import com.cnsoftware.synapse.domain.Note
 import com.cnsoftware.synapse.domain.NoteColor
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -207,5 +208,63 @@ class NoteRepositoryImplTest {
         repository.deleteLabel(work.id)
         assertEquals(listOf("ev"), repository.observeLabels().first().map { it.name })
         assertTrue(repository.getNoteById("n1")!!.labels.isEmpty())
+    }
+
+    @Test
+    fun searchCoversChecklistItemsAndTurkishLetters() = runTest(dispatcher) {
+        repository.upsertNote(
+            note(
+                id = "liste",
+                title = "Alışveriş",
+                content = "",
+                isChecklist = true,
+                checklistItems = listOf(ChecklistItem(id = "c1", text = "Çay", position = 0)),
+            ),
+        )
+        repository.upsertNote(note("isi", title = "ISI yalıtımı", content = ""))
+        repository.upsertNote(note("yuzde", title = "İndirim %50", content = ""))
+
+        assertEquals(listOf("liste"), repository.searchActiveNotes("çay").first().map { it.id })
+        assertEquals(listOf("isi"), repository.searchActiveNotes("ısı").first().map { it.id })
+        assertEquals(listOf("yuzde"), repository.searchActiveNotes("indirim").first().map { it.id })
+        // "%" joker değil, düz karakter: yalnızca içinde geçen not çıkmalı.
+        assertEquals(listOf("yuzde"), repository.searchActiveNotes("%").first().map { it.id })
+    }
+
+    @Test
+    fun permanentDeletionRemovesChecklistItems() = runTest(dispatcher) {
+        val items = listOf(ChecklistItem(id = "c1", text = "süt", position = 0))
+        repository.upsertNote(note("tek", isChecklist = true, checklistItems = items, isDeleted = true))
+        repository.upsertNote(
+            note(
+                id = "toplu",
+                isChecklist = true,
+                checklistItems = listOf(ChecklistItem(id = "c2", text = "ekmek", position = 0)),
+                isDeleted = true,
+            ),
+        )
+        val noteQueries = NoteDatabase(driver).noteQueries
+
+        repository.deletePermanently("tek")
+        assertTrue(noteQueries.selectItemsForNote("tek").executeAsList().isEmpty())
+
+        repository.emptyTrash()
+        assertTrue(noteQueries.selectItemsForNote("toplu").executeAsList().isEmpty())
+    }
+
+    @Test
+    fun mergeBackupMapsLabelsByNameWhenIdsDiffer() = runTest(dispatcher) {
+        // Cihazda "iş" etiketi zaten var; yedekteki "iş" ise başka bir id taşıyor.
+        val local = repository.createLabel("iş")
+        val fromBackup = Label(id = "yedek-etiket-id", name = "iş")
+
+        repository.mergeBackup(
+            notes = listOf(note("n1").copy(labels = listOf(fromBackup))),
+            labels = listOf(fromBackup),
+        )
+
+        // Tek etiket kalmalı ve not ona bağlı olmalı.
+        assertEquals(listOf(local.id), repository.observeLabels().first().map { it.id })
+        assertEquals(listOf(local.id), repository.getNoteById("n1")!!.labels.map { it.id })
     }
 }

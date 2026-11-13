@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Kısayol ikonu: Material "checklist". -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="960"
+    android:viewportHeight="960"
+    android:tint="#D99B21">
+    <group android:translateY="960">
+        <path
+            android:fillColor="@android:color/white"
+            android:pathData="M222-200l-84,-84 56,-56 28,28 90,-90 56,58 -146,144ZM222,-424l-84,-84 56,-56 28,28 90,-90 56,58 -146,144ZM222,-648l-84,-84 56,-56 28,28 90,-90 56,58 -146,144ZM422,-240v-80h400v80h-400ZM422,-464v-80h400v80h-400ZM422,-688v-80h400v80h-400Z" />
+    </group>
+</vector>

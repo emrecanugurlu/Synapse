@@ -105,6 +105,11 @@
     <string name="checklist_remove_item">Remove item</string>
     <string name="checklist_completed_count">%1$d completed</string>
     <string name="checklist_drag_handle">Drag to reorder</string>
+    <string name="checklist_check_all">Check all</string>
+    <string name="checklist_uncheck_all">Uncheck all</string>
+    <string name="checklist_clear_completed">Clear completed</string>
+    <string name="stats_checklist">%1$d of %2$d done</string>
+    <string name="stats_text">%1$d words · %2$d characters</string>
 
     <!-- Labels -->
     <string name="label_remove">Remove label</string>
@@ -114,9 +119,6 @@
     <string name="label_color">Color</string>
     <string name="label_icon">Icon</string>
     <string name="labels_edit_title">Edit label</string>
-    <string name="labels_rename">Rename</string>
-    <string name="labels_rename_title">Rename label</string>
-    <string name="labels_merge">Merge</string>
     <string name="labels_merge_menu">Merge with another label</string>
     <string name="labels_merge_title">Merge \"%1$s\" with</string>
     <string name="labels_merge_message">Notes with this label move to the one you pick, and \"%1$s\" is deleted.</string>
@@ -150,6 +152,25 @@
     <string name="settings_retention_7">7 days</string>
     <string name="settings_retention_14">14 days</string>
     <string name="settings_retention_30">30 days</string>
+
+    <string name="settings_backup">Backup</string>
+    <string name="settings_backup_description">Export your notes and labels to a file. Restoring adds them back without deleting what you already have.</string>
+    <string name="settings_backup_export">Export</string>
+    <string name="settings_backup_import">Restore</string>
+    <string name="backup_success">Done</string>
+    <string name="backup_error_invalid">Couldn't read that file. Is it a Synapse backup?</string>
+    <string name="backup_error_version">This backup was made with a newer version. Update the app.</string>
+    <string name="backup_error_io">Couldn't finish. Try again.</string>
+    <string name="settings_auto_backup">Automatic backup</string>
+    <string name="settings_auto_backup_off">Off</string>
+    <string name="settings_auto_backup_daily">Daily</string>
+    <string name="settings_auto_backup_weekly">Weekly</string>
+    <string name="settings_backup_folder">Backup folder</string>
+    <string name="settings_backup_folder_none">Not selected</string>
+    <string name="settings_backup_folder_set">Selected</string>
+    <string name="settings_backup_folder_lost">Can't reach that folder. Pick it again.</string>
+    <string name="settings_backup_folder_choose">Choose</string>
+    <string name="settings_backup_last">Last backup: %1$s</string>
 
     <string name="settings_label_filters">Filter bar</string>
     <string name="settings_label_filters_description">Shows label filters above your notes</string>

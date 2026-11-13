@@ -47,7 +47,15 @@ fun SheetActionRow(
     icon: ImageVector,
     label: String,
     onClick: () -> Unit,
+    /** Yıkıcı işlemler (kalıcı silme vb.) uyarı renginde. */
+    destructive: Boolean = false,
 ) {
+    val tint = if (destructive) {
+        MaterialTheme.colorScheme.error
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    }
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
@@ -56,7 +64,23 @@ fun SheetActionRow(
             .clickable(onClick = onClick)
             .padding(horizontal = Spacing.xl, vertical = Spacing.lg),
     ) {
-        Icon(imageVector = icon, contentDescription = null)
-        Text(text = label, style = MaterialTheme.typography.bodyLarge)
+        Icon(imageVector = icon, contentDescription = null, tint = tint)
+        Text(text = label, style = MaterialTheme.typography.bodyLarge, color = tint)
     }
+}
+
+/** Alt sayfa başlığı; aksiyon listesinin neye ait olduğunu söyler. */
+@Composable
+fun SheetTitle(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.titleMediumEmphasized,
+        color = MaterialTheme.colorScheme.onSurface,
+        modifier = Modifier.padding(
+            start = Spacing.xl,
+            end = Spacing.xl,
+            top = Spacing.sm,
+            bottom = Spacing.md,
+        ),
+    )
 }

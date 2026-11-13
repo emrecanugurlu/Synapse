@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Kısayol ikonu: Material "edit_note". Tek renk; launcher maskeler. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="960"
+    android:viewportHeight="960"
+    android:tint="#D99B21">
+    <group android:translateY="960">
+        <path
+            android:fillColor="@android:color/white"
+            android:pathData="M200-400h205l59-59-32-32-42,42h-190v49ZM200-537h145l124-124q11,-11 25,-16.5t28,-5.5q15,0 29,6t25,17l37,38q10,11 15.5,24.5t5.5,27.5q0,14 -5,28t-16,25l-124,124q-9,9 -21,14t-25,5h-243v-163ZM120-120v-720h720v340q-19,-9 -39,-13t-41,-2v-245h-560v480h280l-80,80h-280Z" />
+    </group>
+</vector>

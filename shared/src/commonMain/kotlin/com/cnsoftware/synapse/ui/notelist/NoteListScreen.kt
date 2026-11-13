@@ -12,13 +12,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Archive
@@ -27,8 +25,6 @@ import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.DeleteOutline
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Label
 import androidx.compose.material.icons.filled.Lightbulb
@@ -37,13 +33,11 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material.icons.filled.SearchOff
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material.icons.filled.ViewAgenda
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.ToggleFloatingActionButton
 import androidx.compose.material3.FilterChip
@@ -54,20 +48,15 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.FloatingActionButtonMenu
 import androidx.compose.material3.FloatingActionButtonMenuItem
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalDrawerSheet
-import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberDrawerState
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
@@ -76,7 +65,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.key
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -108,14 +96,12 @@ import com.cnsoftware.synapse.ui.common.SectionedNoteGrid
 import com.cnsoftware.synapse.ui.common.SelectionTopBar
 import com.cnsoftware.synapse.ui.common.SheetActionRow
 import com.cnsoftware.synapse.ui.common.UndoSnackbarEffect
-import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 import synapse.shared.generated.resources.Res
 import synapse.shared.generated.resources.action_close
 import synapse.shared.generated.resources.action_ok
 import synapse.shared.generated.resources.action_more
 import synapse.shared.generated.resources.action_open_menu
-import synapse.shared.generated.resources.app_name
 import synapse.shared.generated.resources.card_duplicate
 import synapse.shared.generated.resources.editor_labels
 import synapse.shared.generated.resources.editor_share
@@ -126,12 +112,6 @@ import synapse.shared.generated.resources.empty_search_title
 import synapse.shared.generated.resources.fab_new
 import synapse.shared.generated.resources.fab_new_checklist
 import synapse.shared.generated.resources.fab_new_note
-import synapse.shared.generated.resources.nav_archive
-import synapse.shared.generated.resources.nav_edit_labels
-import synapse.shared.generated.resources.nav_labels
-import synapse.shared.generated.resources.nav_notes
-import synapse.shared.generated.resources.nav_settings
-import synapse.shared.generated.resources.nav_trash
 import synapse.shared.generated.resources.search_notes_hint
 import synapse.shared.generated.resources.section_others
 import synapse.shared.generated.resources.section_pinned
@@ -154,10 +134,7 @@ fun NoteListScreen(
     onNoteClick: (String) -> Unit,
     onAddNote: () -> Unit,
     onAddChecklist: () -> Unit,
-    onOpenArchive: () -> Unit,
-    onOpenTrash: () -> Unit,
-    onOpenLabels: () -> Unit,
-    onOpenSettings: () -> Unit,
+    onOpenDrawer: () -> Unit,
     viewModel: NoteListViewModel = koinViewModel(),
 ) {
     val notes by viewModel.notes.collectAsStateWithLifecycle()
@@ -179,8 +156,6 @@ fun NoteListScreen(
     var fabExpanded by remember { mutableStateOf(false) }
     var searchActive by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
-    val drawerState = rememberDrawerState(DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
 
     // Seçim ya da arama moduna geçilince açık kalan FAB menüsünü kapat.
     LaunchedEffect(selectionMode, searchActive) {
@@ -189,10 +164,9 @@ fun NoteListScreen(
 
     // Geri tuşu önce açık olan katmanı kapatır; hiçbiri açık değilse
     // sistemin devralmasına izin verilir (uygulamadan çıkış).
-    val hasOpenLayer = drawerState.isOpen || selectionMode || searchActive || fabExpanded
+    val hasOpenLayer = selectionMode || searchActive || fabExpanded
     BackHandler(enabled = hasOpenLayer) {
         when {
-            drawerState.isOpen -> scope.launch { drawerState.close() }
             selectionMode -> viewModel.clearSelection()
             searchActive -> {
                 searchActive = false
@@ -209,263 +183,170 @@ fun NoteListScreen(
         onDismiss = viewModel::dismissUndo,
     )
 
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
-            // Varsayılan 360dp telefonda ekranın neredeyse tamamını kaplıyordu.
-            ModalDrawerSheet(
-                modifier = Modifier.width(300.dp),
-                drawerContainerColor = MaterialTheme.colorScheme.surface,
-            ) {
-                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                    // Launcher ikonu zaten markayı taşıyor; drawer'da ikinci bir
-                    // logo tekrar olur. Yalnızca marka renginde isim yeterli.
-                    Text(
-                        text = stringResource(Res.string.app_name),
-                        style = MaterialTheme.typography.headlineSmallEmphasized,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(horizontal = 28.dp, vertical = Spacing.xl),
-                    )
-                    NavigationDrawerItem(
-                        label = { Text(stringResource(Res.string.nav_notes)) },
-                        icon = { Icon(Icons.Default.Lightbulb, contentDescription = null) },
-                        selected = selectedLabelId == null,
-                        onClick = {
-                            viewModel.onLabelFilterChange(null)
-                            scope.launch { drawerState.close() }
-                        },
-                        modifier = Modifier.padding(horizontal = 12.dp),
-                    )
-                    NavigationDrawerItem(
-                        label = { Text(stringResource(Res.string.nav_archive)) },
-                        icon = { Icon(Icons.Default.Archive, contentDescription = null) },
-                        selected = false,
-                        onClick = {
-                            scope.launch { drawerState.close() }
-                            onOpenArchive()
-                        },
-                        modifier = Modifier.padding(horizontal = 12.dp),
-                    )
-                    NavigationDrawerItem(
-                        label = { Text(stringResource(Res.string.nav_trash)) },
-                        icon = { Icon(Icons.Default.DeleteOutline, contentDescription = null) },
-                        selected = false,
-                        onClick = {
-                            scope.launch { drawerState.close() }
-                            onOpenTrash()
-                        },
-                        modifier = Modifier.padding(horizontal = 12.dp),
-                    )
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                    Text(
-                        text = stringResource(Res.string.nav_labels),
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 28.dp, vertical = 8.dp),
-                    )
-                    labels.forEach { label ->
-                        NavigationDrawerItem(
-                            label = { Text(label.name) },
-                            // Etiketin kendi ikonu; kullanıcı listeyi renk/ikonla tanıyor.
-                            icon = { Icon(label.icon.imageVector, contentDescription = null) },
-                            selected = label.id == selectedLabelId,
-                            onClick = {
-                                viewModel.onLabelFilterChange(label.id)
-                                scope.launch { drawerState.close() }
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        topBar = {
+            when {
+                selectionMode -> SelectionTopBar(
+                    selectedCount = selectedIds.size,
+                    onClose = viewModel::clearSelection,
+                ) {
+                    // Birincil aksiyonlar barda; ikincil olanlar taşma menüsünde.
+                    // Seçilenlerin hepsi sabitse buton "sabitlemeyi kaldır"a döner.
+                    IconButton(onClick = viewModel::togglePinSelected) {
+                        Icon(
+                            imageVector = if (allSelectedPinned) {
+                                Icons.Outlined.PushPin
+                            } else {
+                                Icons.Default.PushPin
                             },
-                            modifier = Modifier.padding(horizontal = 12.dp),
+                            contentDescription = stringResource(
+                                if (allSelectedPinned) {
+                                    Res.string.selection_unpin
+                                } else {
+                                    Res.string.selection_pin
+                                },
+                            ),
                         )
                     }
-                    NavigationDrawerItem(
-                        label = { Text(stringResource(Res.string.nav_edit_labels)) },
-                        icon = { Icon(Icons.Default.Edit, contentDescription = null) },
-                        selected = false,
-                        onClick = {
-                            scope.launch { drawerState.close() }
-                            onOpenLabels()
-                        },
-                        modifier = Modifier.padding(horizontal = 12.dp),
-                    )
-                    HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.sm))
-                    NavigationDrawerItem(
-                        label = { Text(stringResource(Res.string.nav_settings)) },
-                        icon = { Icon(Icons.Default.Settings, contentDescription = null) },
-                        selected = false,
-                        onClick = {
-                            scope.launch { drawerState.close() }
-                            onOpenSettings()
-                        },
-                        modifier = Modifier.padding(horizontal = 12.dp),
-                    )
+                    IconButton(onClick = viewModel::archiveSelected) {
+                        Icon(Icons.Default.Archive, contentDescription = stringResource(Res.string.selection_archive))
+                    }
+                    IconButton(onClick = viewModel::trashSelected) {
+                        Icon(Icons.Default.Delete, contentDescription = stringResource(Res.string.selection_delete))
+                    }
+                    IconButton(onClick = { selectionMenuExpanded = true }) {
+                        Icon(Icons.Default.MoreVert, contentDescription = stringResource(Res.string.action_more))
+                    }
+                }
+                else -> PillSearchBar(
+                    query = query,
+                    searchActive = searchActive,
+                    placeholder = stringResource(Res.string.search_notes_hint),
+                    onQueryChange = viewModel::onSearchQueryChange,
+                    onActivateSearch = { searchActive = true },
+                    onCloseSearch = {
+                        searchActive = false
+                        viewModel.onSearchQueryChange("")
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onOpenDrawer) {
+                            Icon(Icons.Default.Menu, contentDescription = stringResource(Res.string.action_open_menu))
+                        }
+                    },
+                ) {
+                    IconButton(onClick = viewModel::toggleViewMode) {
+                        Icon(
+                            imageVector = if (isGridView) Icons.Default.ViewAgenda else Icons.Default.GridView,
+                            contentDescription = if (isGridView) stringResource(Res.string.view_switch_to_list) else stringResource(Res.string.view_switch_to_grid),
+                        )
+                    }
+                    IconButton(onClick = { showSortSheet = true }) {
+                        Icon(Icons.Default.Sort, contentDescription = stringResource(Res.string.sort_title))
+                    }
                 }
             }
         },
-    ) {
-        Scaffold(
-            snackbarHost = { SnackbarHost(snackbarHostState) },
-            topBar = {
-                when {
-                    selectionMode -> SelectionTopBar(
-                        selectedCount = selectedIds.size,
-                        onClose = viewModel::clearSelection,
-                    ) {
-                        // Birincil aksiyonlar barda; ikincil olanlar taşma menüsünde.
-                        // Seçilenlerin hepsi sabitse buton "sabitlemeyi kaldır"a döner.
-                        IconButton(onClick = viewModel::togglePinSelected) {
-                            Icon(
-                                imageVector = if (allSelectedPinned) {
-                                    Icons.Outlined.PushPin
+        floatingActionButton = {
+            if (!selectionMode) {
+                ExpandableAddFab(
+                    expanded = fabExpanded,
+                    onExpandedChange = { fabExpanded = it },
+                    onAddNote = onAddNote,
+                    onAddChecklist = onAddChecklist,
+                )
+            }
+        },
+    ) { padding ->
+        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+            // Şerit Ayarlar'dan açılıp kapatılıyor. Ancak bir filtre
+            // uygulanmışken kapalı olsa bile gösteriliyor: aksi halde
+            // kullanıcı aktif filtreyi ne görebilir ne de kaldırabilirdi.
+            if (labels.isNotEmpty() && (labelFiltersVisible || selectedLabelId != null)) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = Spacing.screenPadding, vertical = Spacing.sm),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                ) {
+                    labels.forEach { label ->
+                        FilterChip(
+                            selected = label.id == selectedLabelId,
+                            onClick = { viewModel.onLabelFilterChange(label.id) },
+                            label = { Text(label.name) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = if (label.color == NoteColor.DEFAULT) {
+                                    MaterialTheme.colorScheme.secondaryContainer
                                 } else {
-                                    Icons.Default.PushPin
+                                    label.color.toContainerColor()
                                 },
-                                contentDescription = stringResource(
-                                    if (allSelectedPinned) {
-                                        Res.string.selection_unpin
-                                    } else {
-                                        Res.string.selection_pin
-                                    },
-                                ),
-                            )
-                        }
-                        IconButton(onClick = viewModel::archiveSelected) {
-                            Icon(Icons.Default.Archive, contentDescription = stringResource(Res.string.selection_archive))
-                        }
-                        IconButton(onClick = viewModel::trashSelected) {
-                            Icon(Icons.Default.Delete, contentDescription = stringResource(Res.string.selection_delete))
-                        }
-                        IconButton(onClick = { selectionMenuExpanded = true }) {
-                            Icon(Icons.Default.MoreVert, contentDescription = stringResource(Res.string.action_more))
-                        }
-                    }
-                    else -> PillSearchBar(
-                        query = query,
-                        searchActive = searchActive,
-                        placeholder = stringResource(Res.string.search_notes_hint),
-                        onQueryChange = viewModel::onSearchQueryChange,
-                        onActivateSearch = { searchActive = true },
-                        onCloseSearch = {
-                            searchActive = false
-                            viewModel.onSearchQueryChange("")
-                        },
-                        navigationIcon = {
-                            IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                                Icon(Icons.Default.Menu, contentDescription = stringResource(Res.string.action_open_menu))
-                            }
-                        },
-                    ) {
-                        IconButton(onClick = viewModel::toggleViewMode) {
-                            Icon(
-                                imageVector = if (isGridView) Icons.Default.ViewAgenda else Icons.Default.GridView,
-                                contentDescription = if (isGridView) stringResource(Res.string.view_switch_to_list) else stringResource(Res.string.view_switch_to_grid),
-                            )
-                        }
-                        IconButton(onClick = { showSortSheet = true }) {
-                            Icon(Icons.Default.Sort, contentDescription = stringResource(Res.string.sort_title))
-                        }
-                    }
-                }
-            },
-            floatingActionButton = {
-                if (!selectionMode) {
-                    ExpandableAddFab(
-                        expanded = fabExpanded,
-                        onExpandedChange = { fabExpanded = it },
-                        onAddNote = onAddNote,
-                        onAddChecklist = onAddChecklist,
-                    )
-                }
-            },
-        ) { padding ->
-            Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-                // Şerit Ayarlar'dan açılıp kapatılıyor. Ancak bir filtre
-                // uygulanmışken kapalı olsa bile gösteriliyor: aksi halde
-                // kullanıcı aktif filtreyi ne görebilir ne de kaldırabilirdi.
-                if (labels.isNotEmpty() && (labelFiltersVisible || selectedLabelId != null)) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState())
-                            .padding(horizontal = Spacing.screenPadding, vertical = Spacing.sm),
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                    ) {
-                        labels.forEach { label ->
-                            FilterChip(
-                                selected = label.id == selectedLabelId,
-                                onClick = { viewModel.onLabelFilterChange(label.id) },
-                                label = { Text(label.name) },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = if (label.color == NoteColor.DEFAULT) {
-                                        MaterialTheme.colorScheme.secondaryContainer
-                                    } else {
-                                        label.color.toContainerColor()
-                                    },
-                                ),
-                                leadingIcon = if (label.id == selectedLabelId) {
-                                    { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
-                                } else {
-                                    null
-                                },
-                            )
-                        }
-                    }
-                } else {
-                    Spacer(modifier = Modifier.height(Spacing.xs))
-                }
-                if (isLoading) {
-                    LoadingPlaceholder(modifier = Modifier.fillMaxSize())
-                    return@Column
-                }
-                val pinnedNotes = notes.filter { it.isPinned }
-                val otherNotes = notes.filterNot { it.isPinned }
-                SectionedNoteGrid(
-                    sections = if (pinnedNotes.isEmpty()) {
-                        listOf(NoteSection(title = null, notes = otherNotes))
-                    } else {
-                        listOf(
-                            NoteSection(title = stringResource(Res.string.section_pinned), notes = pinnedNotes),
-                            NoteSection(title = stringResource(Res.string.section_others), notes = otherNotes),
-                        )
-                    },
-                    empty = {
-                        if (query.isNotBlank()) {
-                            EmptyState(
-                                icon = Icons.Default.SearchOff,
-                                title = stringResource(Res.string.empty_search_title),
-                                description = stringResource(Res.string.empty_search_description, query),
-                            )
-                        } else {
-                            EmptyState(
-                                icon = Icons.Default.Lightbulb,
-                                title = stringResource(Res.string.empty_notes_title),
-                                description = stringResource(Res.string.empty_notes_description),
-                            )
-                        }
-                    },
-                    modifier = Modifier.fillMaxSize(),
-                    // Adaptive yerine sabit 2 sütun: Adaptive, kullanılabilir genişliği
-                    // her ölçümde yeniden hesaplayıp sütun sayısını oynatabiliyor,
-                    // bu da kartların yer değiştirmesine yol açıyor.
-                    columns = if (isGridView) {
-                        StaggeredGridCells.Fixed(2)
-                    } else {
-                        StaggeredGridCells.Fixed(1)
-                    },
-                ) { note ->
-                    SwipeableNoteCard(
-                        note = note,
-                        enabled = !selectionMode,
-                        onArchive = { viewModel.archive(note) },
-                        onTrash = { viewModel.moveToTrash(note) },
-                    ) {
-                        NoteCard(
-                            note = note,
-                            onClick = {
-                                if (selectionMode) viewModel.toggleSelection(note.id) else onNoteClick(note.id)
+                            ),
+                            leadingIcon = if (label.id == selectedLabelId) {
+                                { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                            } else {
+                                null
                             },
-                            onLongClick = { viewModel.toggleSelection(note.id) },
-                            selected = note.id in selectedIds,
                         )
                     }
+                }
+            } else {
+                Spacer(modifier = Modifier.height(Spacing.xs))
+            }
+            if (isLoading) {
+                LoadingPlaceholder(modifier = Modifier.fillMaxSize())
+                return@Column
+            }
+            val pinnedNotes = notes.filter { it.isPinned }
+            val otherNotes = notes.filterNot { it.isPinned }
+            SectionedNoteGrid(
+                sections = if (pinnedNotes.isEmpty()) {
+                    listOf(NoteSection(title = null, notes = otherNotes))
+                } else {
+                    listOf(
+                        NoteSection(title = stringResource(Res.string.section_pinned), notes = pinnedNotes),
+                        NoteSection(title = stringResource(Res.string.section_others), notes = otherNotes),
+                    )
+                },
+                empty = {
+                    if (query.isNotBlank()) {
+                        EmptyState(
+                            icon = Icons.Default.SearchOff,
+                            title = stringResource(Res.string.empty_search_title),
+                            description = stringResource(Res.string.empty_search_description, query),
+                        )
+                    } else {
+                        EmptyState(
+                            icon = Icons.Default.Lightbulb,
+                            title = stringResource(Res.string.empty_notes_title),
+                            description = stringResource(Res.string.empty_notes_description),
+                        )
+                    }
+                },
+                modifier = Modifier.fillMaxSize(),
+                // Adaptive yerine sabit 2 sütun: Adaptive, kullanılabilir genişliği
+                // her ölçümde yeniden hesaplayıp sütun sayısını oynatabiliyor,
+                // bu da kartların yer değiştirmesine yol açıyor.
+                columns = if (isGridView) {
+                    StaggeredGridCells.Fixed(2)
+                } else {
+                    StaggeredGridCells.Fixed(1)
+                },
+            ) { note ->
+                SwipeableNoteCard(
+                    note = note,
+                    enabled = !selectionMode,
+                    onArchive = { viewModel.archive(note) },
+                    onTrash = { viewModel.moveToTrash(note) },
+                ) {
+                    NoteCard(
+                        note = note,
+                        onClick = {
+                            if (selectionMode) viewModel.toggleSelection(note.id) else onNoteClick(note.id)
+                        },
+                        onLongClick = { viewModel.toggleSelection(note.id) },
+                        selected = note.id in selectedIds,
+                    )
                 }
             }
         }

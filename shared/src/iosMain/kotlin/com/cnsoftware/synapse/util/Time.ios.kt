@@ -8,6 +8,8 @@ import platform.Foundation.NSCalendarUnitYear
 import platform.Foundation.NSDate
 import platform.Foundation.NSDateComponents
 import platform.Foundation.NSDateFormatter
+import platform.Foundation.NSLocale
+import platform.Foundation.localeWithLocaleIdentifier
 import platform.Foundation.NSTimeZone
 import platform.Foundation.dateWithTimeIntervalSince1970
 import platform.Foundation.timeIntervalSince1970
@@ -38,5 +40,13 @@ actual fun combineDateTime(dateUtcMidnightMillis: Long, hour: Int, minute: Int):
 
 actual fun formatDateTime(millis: Long): String {
     val formatter = NSDateFormatter().apply { dateFormat = "d MMM HH:mm" }
+    return formatter.stringFromDate(NSDate.dateWithTimeIntervalSince1970(millis / 1000.0))
+}
+
+actual fun formatBackupTimestamp(millis: Long): String {
+    val formatter = NSDateFormatter().apply {
+        dateFormat = "yyyy-MM-dd-HHmm"
+        locale = NSLocale.localeWithLocaleIdentifier("en_US_POSIX")
+    }
     return formatter.stringFromDate(NSDate.dateWithTimeIntervalSince1970(millis / 1000.0))
 }

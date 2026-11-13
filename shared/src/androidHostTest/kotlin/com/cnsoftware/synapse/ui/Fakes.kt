@@ -7,6 +7,7 @@ import com.cnsoftware.synapse.share.ShareService
 class FakePreferencesStore : PreferencesStore {
     private val strings = mutableMapOf<String, String>()
     private val booleans = mutableMapOf<String, Boolean>()
+    private val ints = mutableMapOf<String, Int>()
 
     override fun getString(key: String): String? = strings[key]
     override fun putString(key: String, value: String) {
@@ -16,6 +17,11 @@ class FakePreferencesStore : PreferencesStore {
     override fun getBoolean(key: String, default: Boolean): Boolean = booleans[key] ?: default
     override fun putBoolean(key: String, value: Boolean) {
         booleans[key] = value
+    }
+
+    override fun getInt(key: String, default: Int): Int = ints[key] ?: default
+    override fun putInt(key: String, value: Int) {
+        ints[key] = value
     }
 }
 

@@ -3,7 +3,7 @@ package com.cnsoftware.synapse.ui.trash
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.DeleteSweep
@@ -31,7 +31,7 @@ import com.cnsoftware.synapse.ui.common.PillSearchBar
 import com.cnsoftware.synapse.ui.common.SelectionTopBar
 import org.koin.compose.viewmodel.koinViewModel
 import synapse.shared.generated.resources.Res
-import synapse.shared.generated.resources.action_back
+import synapse.shared.generated.resources.action_open_menu
 import synapse.shared.generated.resources.action_cancel
 import synapse.shared.generated.resources.action_delete
 import synapse.shared.generated.resources.empty_search_description
@@ -51,6 +51,7 @@ private enum class TrashConfirm { DELETE_SELECTED, EMPTY_ALL }
 
 @Composable
 fun TrashScreen(
+    onOpenDrawer: () -> Unit,
     onBack: () -> Unit,
     onNoteClick: (String) -> Unit,
     viewModel: TrashViewModel = koinViewModel(),
@@ -100,8 +101,8 @@ fun TrashScreen(
                         viewModel.onSearchQueryChange("")
                     },
                     navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(Res.string.action_back))
+                        IconButton(onClick = onOpenDrawer) {
+                            Icon(Icons.Default.Menu, contentDescription = stringResource(Res.string.action_open_menu))
                         }
                     },
                 ) {

@@ -6,6 +6,8 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,7 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Alarm
@@ -35,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import com.cnsoftware.synapse.domain.Note
 import com.cnsoftware.synapse.ui.theme.Spacing
 import com.cnsoftware.synapse.ui.theme.toContainerColor
+import com.cnsoftware.synapse.util.currentTimeMillis
 import com.cnsoftware.synapse.util.formatDateTime
 import synapse.shared.generated.resources.Res
 import synapse.shared.generated.resources.card_more_items
@@ -44,12 +47,15 @@ import org.jetbrains.compose.resources.stringResource
 private const val MAX_PREVIEW_ITEMS = 5
 private const val MAX_PREVIEW_LABELS = 3
 
+/** Tek bir rozetin kaplayabileceği en fazla genişlik. */
+private val MAX_BADGE_WIDTH = 140.dp
+
 /**
  * Not/Arşiv/Çöp Kutusu ekranlarının ortak kart bileşeni.
  * `topEndAction` ve `bottomActions` ekrana göre değişen aksiyonları (pin, arşivle, geri yükle, kalıcı sil vb.) enjekte etmek içindir.
  * `onLongClick` verilirse (çoklu seçim için) kart uzun basmayı da dinler; `selected` seçim kenarlığını çizer.
  */
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 @Composable
 fun NoteCard(
     note: Note,
@@ -135,27 +141,53 @@ fun NoteCard(
 
             note.reminderAt?.let { reminderAt ->
                 Spacer(modifier = Modifier.height(Spacing.md))
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                // Etiketlerle aynı rozet dili: zeminli, yuvarlak.
+                // Çıplak metin renkli kartlarda kart zeminine karışıyordu.
+                // Zamanı geçmiş hatırlatıcı uyarı renginde — kullanıcı tarihi
+                // okumadan kaçırdığını anlıyor.
+                val overdue = reminderAt < currentTimeMillis()
+                val container = if (overdue) {
+                    MaterialTheme.colorScheme.errorContainer
+                } else {
+                    MaterialTheme.colorScheme.secondaryContainer
+                }
+                val content = if (overdue) {
+                    MaterialTheme.colorScheme.onErrorContainer
+                } else {
+                    MaterialTheme.colorScheme.onSecondaryContainer
+                }
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(container)
+                        .padding(horizontal = Spacing.sm, vertical = 4.dp),
+                ) {
                     Icon(
                         imageVector = Icons.Default.Alarm,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        tint = content,
                         modifier = Modifier.height(14.dp).width(14.dp),
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = formatDateTime(reminderAt),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.Medium,
+                        color = content,
                     )
                 }
             }
 
             if (note.labels.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(Spacing.md))
-                Row(
+                // Sarmalayan düzen: sabit bir Row'da rozetler kart genişliğini
+                // aşıp taşıyordu. FlowRow sığmayanı alt satıra indiriyor.
+                FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-                    verticalAlignment = Alignment.CenterVertically,
+                    verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+                    modifier = Modifier.fillMaxWidth(),
                 ) {
                     // Kullanıcının etikete verdiği renk ve ikon burada da geçerli;
                     // rozet tanımı `LabelBadge` içinde tek yerde duruyor.
@@ -164,7 +196,9 @@ fun NoteCard(
                             name = label.name,
                             color = label.color,
                             icon = label.icon,
-                            modifier = Modifier.wrapContentWidth(),
+                            // Tek bir uzun etiket adı satırı tek başına
+                            // doldurmasın; sınırı aşınca üç noktayla kesiliyor.
+                            modifier = Modifier.widthIn(max = MAX_BADGE_WIDTH),
                         )
                     }
                     if (note.labels.size > MAX_PREVIEW_LABELS) {

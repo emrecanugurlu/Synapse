@@ -1,3 +1,10 @@
 <resources>
     <string name="app_name">Synapse</string>
+
+    <!-- Launcher kısayolları (ikona basılı tutunca). Varsayılan dil İngilizce;
+         Türkçesi values-tr/strings.xml içinde. -->
+    <string name="shortcut_new_note_short">Note</string>
+    <string name="shortcut_new_note_long">New note</string>
+    <string name="shortcut_new_checklist_short">List</string>
+    <string name="shortcut_new_checklist_long">New list</string>
 </resources>

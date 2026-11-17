@@ -1,8 +1,21 @@
 package com.cnsoftware.synapse.ui.common
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -55,7 +68,7 @@ private val MAX_BADGE_WIDTH = 140.dp
  * `topEndAction` ve `bottomActions` ekrana göre değişen aksiyonları (pin, arşivle, geri yükle, kalıcı sil vb.) enjekte etmek içindir.
  * `onLongClick` verilirse (çoklu seçim için) kart uzun basmayı da dinler; `selected` seçim kenarlığını çizer.
  */
-@OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun NoteCard(
     note: Note,
@@ -66,12 +79,36 @@ fun NoteCard(
     topEndAction: (@Composable () -> Unit)? = null,
     bottomActions: (@Composable RowScope.() -> Unit)? = null,
 ) {
-    val shape = MaterialTheme.shapes.medium
+    // Expressive hareket: basılınca kart yaylanarak küçülür, seçilince köşeleri
+    // yuvarlaklaşır (şekil morph'u). Temanın yay spesifikasyonları kullanılıyor;
+    // böylece uygulamanın tüm hareketi tek tonda kalıyor.
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.96f else 1f,
+        animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
+        label = "cardScale",
+    )
+    val corner by animateDpAsState(
+        targetValue = if (selected) 28.dp else 16.dp,
+        animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec(),
+        label = "cardCorner",
+    )
+    val shape = RoundedCornerShape(corner.coerceAtLeast(0.dp))
     Card(
         modifier = modifier
             .fillMaxWidth()
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
             .clip(shape)
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick),
+            .combinedClickable(
+                interactionSource = interactionSource,
+                indication = LocalIndication.current,
+                onClick = onClick,
+                onLongClick = onLongClick,
+            ),
         colors = CardDefaults.cardColors(containerColor = note.color.toContainerColor()),
         shape = shape,
         elevation = CardDefaults.cardElevation(
@@ -79,6 +116,7 @@ fun NoteCard(
         ),
         border = if (selected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
     ) {
+      Box {
         Column(modifier = Modifier.padding(Spacing.lg)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (note.title.isNotBlank()) {
@@ -225,5 +263,34 @@ fun NoteCard(
                 )
             }
         }
+        // Seçim rozeti: seçilen kartın köşesinde yaylanarak beliren onay işareti.
+        val badgeScale by animateFloatAsState(
+            targetValue = if (selected) 1f else 0f,
+            animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
+            label = "badgeScale",
+        )
+        if (badgeScale > 0f) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(Spacing.sm)
+                    .graphicsLayer {
+                        scaleX = badgeScale
+                        scaleY = badgeScale
+                    }
+                    .size(24.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary),
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+        }
+      }
     }
 }

@@ -13,7 +13,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material3.SwitchDefaults
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
@@ -402,6 +405,12 @@ private fun SwitchRow(
             checked = checked,
             // Satırın tamamı tıklanabilir; anahtar ikinci bir hedef olmasın.
             onCheckedChange = null,
+            // Expressive anahtar: açıkken başparmakta onay işareti.
+            thumbContent = if (checked) {
+                { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(SwitchDefaults.IconSize)) }
+            } else {
+                null
+            },
         )
     }
 }

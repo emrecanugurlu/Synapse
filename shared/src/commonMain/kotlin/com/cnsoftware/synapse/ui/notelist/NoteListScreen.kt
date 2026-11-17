@@ -636,14 +636,31 @@ private fun SwipeableNoteCard(
                 SwipeToDismissBoxValue.Settled -> null to Alignment.Center
             }
             if (icon != null) {
+                // Arşiv: tertiary, çöp: error. Renk yönü anlatıyor; kart kaydıkça
+                // arkada yuvarlak köşeli renkli bir zemin açığa çıkıyor.
+                val archiving = dismissState.dismissDirection == SwipeToDismissBoxValue.StartToEnd
                 Box(
-                    modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(MaterialTheme.shapes.large)
+                        .background(
+                            if (archiving) {
+                                MaterialTheme.colorScheme.tertiaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.errorContainer
+                            },
+                        )
+                        .padding(horizontal = 24.dp),
                     contentAlignment = alignment,
                 ) {
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        tint = if (archiving) {
+                            MaterialTheme.colorScheme.onTertiaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.onErrorContainer
+                        },
                     )
                 }
             }

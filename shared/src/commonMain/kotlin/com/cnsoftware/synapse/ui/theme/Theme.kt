@@ -32,6 +32,12 @@ private val LightColors = lightColorScheme(
     onSecondary = Color(0xFFFFFFFF),
     secondaryContainer = Color(0xFFF2E1BC),
     onSecondaryContainer = Color(0xFF251A04),
+    // Üçüncül vurgu: altınla uyumlu yeşilimsi zeytin. Tanımlanmazsa Material'ın
+    // mor varsayılanı çıkıyor; Expressive'de tertiary arşiv/ikincil vurgularda kullanılıyor.
+    tertiary = Color(0xFF55633A),
+    onTertiary = Color(0xFFFFFFFF),
+    tertiaryContainer = Color(0xFFD8E8B4),
+    onTertiaryContainer = Color(0xFF131F00),
     // Zemin ılık ve hafif koyu; kartlar (surface) onun üzerinde açık kalıp öne çıkıyor.
     background = Color(0xFFF3EEE4),
     onBackground = Color(0xFF1E1B14),
@@ -62,6 +68,10 @@ private val DarkColors = darkColorScheme(
     onSecondary = Color(0xFF3D2F14),
     secondaryContainer = Color(0xFF544428),
     onSecondaryContainer = Color(0xFFF2E1BC),
+    tertiary = Color(0xFFBCCC98),
+    onTertiary = Color(0xFF273512),
+    tertiaryContainer = Color(0xFF3D4B26),
+    onTertiaryContainer = Color(0xFFD8E8B4),
     // Karanlık modda da aynı ilişki: zemin en koyu, kartlar bir ton açık.
     background = Color(0xFF17140D),
     onBackground = Color(0xFFEAE3D6),

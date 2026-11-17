@@ -1,5 +1,11 @@
 package com.cnsoftware.synapse.ui.common
 
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.runtime.getValue
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -41,16 +47,25 @@ fun EmptyState(
         // Shape'e çeviren `toShape()` uzantısı androidx.graphics.shapes'te ve
         // material3 bu kütüphaneyi dışarı açmıyor (implementation bağımlılığı).
         // Ek bağımlılık getirmemek için köşeleri farklı yarıçaplı bir form.
+        // Köşe yarıçapları sonsuz döngüde yavaşça yer değiştirir: form "nefes alır".
+        val breathe = rememberInfiniteTransition(label = "emptyBreathe")
+        val big by breathe.animateFloat(
+            initialValue = 48f,
+            targetValue = 20f,
+            animationSpec = infiniteRepeatable(tween(2800), RepeatMode.Reverse),
+            label = "emptyBig",
+        )
+        val small = 68f - big
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
                 .size(96.dp)
                 .clip(
                     RoundedCornerShape(
-                        topStart = 48.dp,
-                        topEnd = 20.dp,
-                        bottomEnd = 48.dp,
-                        bottomStart = 20.dp,
+                        topStart = big.dp,
+                        topEnd = small.dp,
+                        bottomEnd = big.dp,
+                        bottomStart = small.dp,
                     ),
                 )
                 .background(MaterialTheme.colorScheme.surfaceVariant),

@@ -232,8 +232,8 @@ fun App(
             current = screen.toDrawerDestination(),
             labels = labels,
             selectedLabelId = selectedLabelId,
-            // Editör bir detay ekranı: kenardan çekmece açılmasın.
-            gesturesEnabled = screen !is Screen.Editor,
+            // Editör ve Ayarlar detay ekranı: kenardan çekmece açılmasın.
+            gesturesEnabled = screen !is Screen.Editor && screen !is Screen.Settings,
             onOpenNotes = { labelId ->
                 listViewModel.setLabelFilter(labelId)
                 navigate(Screen.List)
@@ -266,7 +266,6 @@ fun App(
                         onBack = { screen = Screen.List },
                     )
                     is Screen.Settings -> SettingsScreen(
-                        onOpenDrawer = openDrawer,
                         onBack = { screen = Screen.List },
                     )
                     is Screen.Archive -> ArchiveScreen(

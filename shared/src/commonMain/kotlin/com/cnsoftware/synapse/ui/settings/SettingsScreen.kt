@@ -14,7 +14,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
@@ -56,7 +56,7 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import synapse.shared.generated.resources.Res
-import synapse.shared.generated.resources.action_open_menu
+import synapse.shared.generated.resources.action_back
 import synapse.shared.generated.resources.settings_appearance
 import synapse.shared.generated.resources.backup_error_invalid
 import synapse.shared.generated.resources.backup_error_io
@@ -104,7 +104,6 @@ import synapse.shared.generated.resources.settings_trash_description
  */
 @Composable
 fun SettingsScreen(
-    onOpenDrawer: () -> Unit,
     onBack: () -> Unit,
     settings: AppSettings = koinInject(),
     viewModel: SettingsViewModel = koinViewModel(),
@@ -157,10 +156,10 @@ fun SettingsScreen(
                     containerColor = MaterialTheme.colorScheme.background,
                 ),
                 navigationIcon = {
-                    IconButton(onClick = onOpenDrawer) {
+                    IconButton(onClick = onBack) {
                         Icon(
-                            Icons.Default.Menu,
-                            contentDescription = stringResource(Res.string.action_open_menu),
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(Res.string.action_back),
                         )
                     }
                 },
